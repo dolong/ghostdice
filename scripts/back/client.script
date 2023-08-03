@@ -81,11 +81,13 @@ end
 function on_message(self, message_id, message, sender)
 	--send a message to the server if cards are drawn
 	if message_id == hash("draw") then
-		room:send("game-message", "draw")
-		print("Cards drawn!")
+		room:send("game-message", {action="draw", player_id=message.player_id})
+		print("Cards drawn by player ", message.player_id)
 	--send a message to the server if a card is played
 	elseif message_id == hash("drop") then
-		room:send("game-message", "drop")
-		print("Card dropped!")
+		room:send("game-message", {action="drop", player_id=message.player_id, zone=message.zone})
+		print("Card dropped by player ", message.player_id)
+	else
+		print("Drop message received, but incomplete information provided.")			
 	end
 end
