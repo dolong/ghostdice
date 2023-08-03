@@ -1,81 +1,83 @@
 --import Colyseus client
 local ColyseusClient = require "colyseus.client"
---create client and room variables
+
 local client
 local room
---create table to store cardbacks in opponent hand
 local opponentCards = {}
---store gameManager url
 local gameManager = "/gameManager#gameManager"
 
+-- Connects to the Colyseus server and initializes the game room.
 function init(self)
-	--create Colyseus client and set it to connect with server at port 2567
-	-- client = ColyseusClient.new("ws://localhost:2567")
-	local BASE_CORE_URL = "https://ca-yto-4b1a817c.colyseus.cloud"
+	local BASE_CORE_URL = "wss://ca-yto-4b1a817c.colyseus.cloud:443"
 	client = ColyseusClient.new(BASE_CORE_URL)
 
-	--create "game" room or report any errors
-	client:join_or_create("my_room", {}, function(err, _room)
-		if err then
-			print("JOIN ERROR: " ..err)
-			return
-		end
-
-		print("JOIN SUCCESSFUL")
-		room = _room
-
-		room:on_message("server-message", function(message)
-			--log a message when received of type "server-message"
-			print("Server message: " ..message)
-		end)
-
-		room:on_message("game-message", function(message)
-			--log a message when received of type "game-message"
-			print("Game message: " ..message)
-			--render 5 opponent cardbacks when the "game-message" is "draw" 
-			if (message == "draw") then
-				for i = 1,5 do
-					local card = factory.create("/spawner#opponentCardBackFactory", vmath.vector3(110 + (i * 50), 810, 0), nil, nil, 0.3)
-					--add each card to the opponentCards table
-					table.insert(opponentCards, card)
-					--store the number of opponent cards in the gameManager
-					go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
-				end
-			--render a dropped opponent card when the "game-message" is "drop"
-			elseif (message == "drop") then
-				--retrieve the current number of cards in the dropzone
-				local cardsInDropZone = go.get(gameManager, "cardsPlayed")
-				--retrieve the current zPosition
-				local zPos = go.get(gameManager, "zPosition")
-				local p = vmath.vector3(550 + (cardsInDropZone * 50), 547, zPos)
-				--create an opponentCard in the dropzone at the correct position
-				factory.create("/spawner#opponentCardFactory", p, nil, nil, 0.3)
-				--increment the number of cards played and the zPosition
-				go.set(gameManager, "cardsPlayed", (cardsInDropZone + 1))
-				go.set(gameManager, "zPosition", (zPos + 0.01))
-
-				--delete a cardback from the opponent hand and decrement the number of opponent cards in the gameManager
-				local cardsInOpponentHand = go.get(gameManager, "cardsInOpponentHand")
-				if cardsInOpponentHand > 0 then
-					go.delete(opponentCards[cardsInOpponentHand])
-					table.remove(opponentCards, cardsInOppnentHand)
-					go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
-				end
-			end
-		end)
-		
-	end)
+	client:join_or_create("my_room", {}, handleRoomCreation)
 end
 
---receive message (in this case, from cursorController)
+-- Callback function to handle the game room creation.
+function handleRoomCreation(err, _room)
+	if err then
+		print("JOIN ERROR: " ..err)
+		return
+	end
+
+	print("JOIN SUCCESSFUL")
+	room = _room
+
+	room:on_message("server-message", function(message)
+		print("Server message: " ..message)
+	end)
+
+	room:on_message("game-message", handleGameMessage)
+end
+
+-- Callback function to handle game messages received from the server.
+function handleGameMessage(message)
+	print("Game message: " ..message)
+
+	if (message == "draw") then
+		opponent_drawhand()
+	elseif (message == "drop") then
+		opponent_drop()
+	end
+end
+
+-- Creates an opponent card in the dropzone at the correct position and updates game manager.
+function opponent_drop()
+	local cardsInDropZone = go.get(gameManager, "cardsPlayed")
+	local zPos = go.get(gameManager, "zPosition")
+	local p = vmath.vector3(850 + (cardsInDropZone * 50), 547, zPos)
+
+	factory.create("/spawner#opponentCardFactory", p, nil, nil, 0.3)
+
+	go.set(gameManager, "cardsPlayed", (cardsInDropZone + 1))
+	go.set(gameManager, "zPosition", (zPos + 0.01))
+
+	local cardsInOpponentHand = go.get(gameManager, "cardsInOpponentHand")
+
+	if cardsInOpponentHand > 0 then
+		go.delete(opponentCards[cardsInOpponentHand])
+		table.remove(opponentCards, cardsInOpponentHand)
+		go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
+	end
+end
+
+-- Creates opponent cards and updates game manager.
+function opponent_drawhand()
+	for i = 1,5 do
+		local card = factory.create("/spawner#opponentCardBackFactory", vmath.vector3(610 + (i * 50), 1210, 0), nil, nil, 0.3)
+		table.insert(opponentCards, card)
+		go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
+	end
+end
+
+-- Sends a message to the server when cards are drawn or played.
 function on_message(self, message_id, message, sender)
-	--send a message to the server if cards are drawn
 	if message_id == hash("draw") then
-		room:send("game-message", "draw")
-		print("Cards drawn!")
-	--send a message to the server if a card is played
+		room:send("game-message", {action="draw", player_id=message.player_id})
+		print("Cards drawn by player ", message.player_id)
 	elseif message_id == hash("drop") then
-		room:send("game-message", "drop")
-		print("Card dropped!")
+		room:send("game-message", {action="drop", player_id=message.player_id, zone=message.zone})
+		print("Card dropped by player ", message.player_id)
 	end
 end

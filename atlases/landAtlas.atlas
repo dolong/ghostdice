@@ -1,9 +1,9 @@
 images {
-  image: "/assets/back.png"
+  image: "/assets/location.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/assets/blank.png"
+  image: "/assets/coral.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 margin: 0

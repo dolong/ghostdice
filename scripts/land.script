@@ -1,0 +1,8 @@
+--set "isDraggable" property of card to initially be false
+go.property("isDraggable", true)
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("set_name") then
+		label.set_text(msg.url("#cardName"), message.name) 
+	end
+end

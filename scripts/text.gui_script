@@ -1,22 +1,51 @@
---import button script from /in folder
 local button = require "in.button"
-local pressed = false
+local cardNamesModule = require "modules.card"  -- replace "path.to" with the actual path
+
+local function handleResponse(self, id, response)
+	if response.status == 200 then
+		print(response.response)
+		local data = json.decode(response.response)  -- decode the JSON data
+		local card_names = data.names  -- extract the names from the data
+
+		for i = 1, #card_names do
+			local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
+			msg.post(card, "set_name", {name = card_names[i]})
+			cardNamesModule.cardNames[tostring(card)] = card_names[i]
+		end
+
+		--send message to the client that cards have been drawn
+		msg.post("/client#client", "draw")
+	else
+		print("Error: ", response.status)
+	end
+end
+
+local function createCardsFromNames(card_names)
+	for i = 1, #card_names do
+		local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
+		msg.post(card, "set_name", {name = card_names[i]})
+		cardNamesModule.cardNames[tostring(card)] = card_names[i]
+	end
+end
+
+local function drawCards()
+	print ("Pressing a button!")
+	if not pressed then 
+		http.request("https://eowpwd5cdeevsfm.m.pipedream.net", "GET", handleResponse)
+		pressed = true
+	end
+end
+
+local function playOcean()
+	print ("Pressing a location!")
+	local land = factory.create("/spawner#landFactory", vmath.vector3(430 + (1 * 50), 270, 0), nil, {isDraggable = true}, .5)
+	msg.post("/client#client", "plant location tile")
+end
 
 function init(self)
-	--register text game object as a button
 	button.acquire()
-	button.register("text", function()
-		print ("Pressing a button!")
-		if not pressed then 
-			--spawn player cards and set their isDraggable property to true
-			for i = 1, 5 do
-				factory.create("/spawner#playerCardFactory", vmath.vector3(110 + (i * 50), 210, 0), nil, {isDraggable = true}, 0.3)
-			end
-			--send message to the client that cards have been drawn
-			msg.post("/client#client", "draw")
-			pressed = true
-		end
-	end)
+	button.register("drawCards", drawCards)
+	button.register("playOcean", playOcean)
 end
 
 function final(self)

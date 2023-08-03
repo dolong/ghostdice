@@ -14,10 +14,10 @@ components {
   }
 }
 embedded_components {
-  id: "sprite1"
+  id: "sprite"
   type: "sprite"
-  data: "tile_set: \"/atlases/playerCardAtlas.atlas\"\n"
-  "default_animation: \"back\"\n"
+  data: "tile_set: \"/atlases/opponentCardAtlas.atlas\"\n"
+  "default_animation: \"Magenta_Ping3x\"\n"
   "material: \"/builtins/materials/sprite.material\"\n"
   "blend_mode: BLEND_MODE_ALPHA\n"
   ""
@@ -31,10 +31,5 @@ embedded_components {
     y: 0.0
     z: 0.0
     w: 1.0
-  }
-  scale {
-    x: 0.5
-    y: 0.5
-    z: 1.0
   }
 }

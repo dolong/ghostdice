@@ -4,3 +4,8 @@ go.property("zPosition", 0.01)
 go.property("cardsPlayed", 0)
 --store the number of card backs in the opponent's hand
 go.property("cardsInOpponentHand", 0)
+--store the number of card backs in the opponent's hand
+go.property("cardsInHand", 0)
+
+
+card_names = {"name1", "name2", "name3", "name4", "name5"}

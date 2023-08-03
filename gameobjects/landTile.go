@@ -1,6 +1,6 @@
 components {
-  id: "card"
-  component: "/scripts/card.script"
+  id: "land"
+  component: "/scripts/land.script"
   position {
     x: 0.0
     y: 0.0
@@ -16,14 +16,14 @@ components {
 embedded_components {
   id: "sprite"
   type: "sprite"
-  data: "tile_set: \"/atlases/playerCardAtlas.atlas\"\n"
-  "default_animation: \"blank\"\n"
+  data: "tile_set: \"/atlases/landAtlas.atlas\"\n"
+  "default_animation: \"location\"\n"
   "material: \"/builtins/materials/sprite.material\"\n"
   "blend_mode: BLEND_MODE_ALPHA\n"
   ""
   position {
-    x: 0.0
-    y: 0.0
+    x: -3.0
+    y: 13.0
     z: 0.0
   }
   rotation {
@@ -33,8 +33,8 @@ embedded_components {
     w: 1.0
   }
   scale {
-    x: 0.5
-    y: 0.5
+    x: 2.254
+    y: 2.191
     z: 1.0
   }
 }
@@ -46,27 +46,27 @@ embedded_components {
   "mass: 0.0\n"
   "friction: 0.1\n"
   "restitution: 0.5\n"
-  "group: \"playerCard\"\n"
+  "group: \"landTile\"\n"
   "mask: \"cursor\"\n"
   "embedded_collision_shape {\n"
   "  shapes {\n"
   "    shape_type: TYPE_BOX\n"
   "    position {\n"
-  "      x: 0.0\n"
-  "      y: 0.0\n"
+  "      x: -1.0\n"
+  "      y: 13.0\n"
   "      z: 0.0\n"
   "    }\n"
   "    rotation {\n"
   "      x: 0.0\n"
-  "      y: 0.0\n"
+  "      y: -0.01500075\n"
   "      z: 0.0\n"
-  "      w: 1.0\n"
+  "      w: 0.99988747\n"
   "    }\n"
   "    index: 0\n"
   "    count: 3\n"
   "  }\n"
-  "  data: 135.0\n"
-  "  data: 190.0\n"
+  "  data: 60.0\n"
+  "  data: 60.0\n"
   "  data: 10.0\n"
   "}\n"
   "linear_damping: 0.0\n"
@@ -96,9 +96,9 @@ embedded_components {
   "  w: 0.0\n"
   "}\n"
   "color {\n"
-  "  x: 1.0\n"
-  "  y: 1.0\n"
-  "  z: 1.0\n"
+  "  x: 0.0\n"
+  "  y: 0.0\n"
+  "  z: 0.0\n"
   "  w: 1.0\n"
   "}\n"
   "outline {\n"
@@ -118,22 +118,25 @@ embedded_components {
   "pivot: PIVOT_CENTER\n"
   "blend_mode: BLEND_MODE_ALPHA\n"
   "line_break: false\n"
-  "text: \"This is a Card Name\\n"
-  "\"\n"
-  "  \"\"\n"
+  "text: \"Location Name\\t\"\n"
   "font: \"/builtins/fonts/system_font.font\"\n"
   "material: \"/builtins/fonts/label.material\"\n"
   ""
   position {
-    x: -1.0
-    y: 149.0
-    z: 1.0
+    x: -6.0
+    y: 96.0
+    z: 0.1
   }
   rotation {
     x: 0.0
     y: 0.0
     z: 0.0
     w: 1.0
+  }
+  scale {
+    x: 2.254
+    y: 2.191
+    z: 1.0
   }
 }
 embedded_components {
@@ -168,17 +171,13 @@ embedded_components {
   "pivot: PIVOT_W\n"
   "blend_mode: BLEND_MODE_ALPHA\n"
   "line_break: false\n"
-  "text: \"This is a card description\\n"
-  "\"\n"
-  "  \"lorem ipsum lorem ipsum\\n"
-  "\"\n"
-  "  \"lorem ipsum lorem ipsum\"\n"
+  "text: \"Location Description\"\n"
   "font: \"/builtins/fonts/system_font.font\"\n"
   "material: \"/builtins/fonts/label.material\"\n"
   ""
   position {
-    x: -99.0
-    y: -94.0
+    x: -125.0
+    y: -27.0
     z: 0.1
   }
   rotation {
@@ -187,54 +186,9 @@ embedded_components {
     z: 0.0
     w: 1.0
   }
-}
-embedded_components {
-  id: "sprite1"
-  type: "sprite"
-  data: "tile_set: \"/atlases/uiAtlas.atlas\"\n"
-  "default_animation: \"square\"\n"
-  "material: \"/builtins/materials/sprite.material\"\n"
-  "blend_mode: BLEND_MODE_ALPHA\n"
-  ""
-  position {
-    x: -95.0
-    y: 145.0
-    z: 0.1
-  }
-  rotation {
-    x: 0.025002815
-    y: 0.0
-    z: 0.0
-    w: 0.9996874
-  }
   scale {
-    x: 0.3
-    y: 0.3
-    z: 1.0
-  }
-}
-embedded_components {
-  id: "sprite2"
-  type: "sprite"
-  data: "tile_set: \"/atlases/uiAtlas.atlas\"\n"
-  "default_animation: \"square\"\n"
-  "material: \"/builtins/materials/sprite.material\"\n"
-  "blend_mode: BLEND_MODE_ALPHA\n"
-  ""
-  position {
-    x: 94.0
-    y: 146.0
-    z: 0.1
-  }
-  rotation {
-    x: 0.025002815
-    y: 0.0
-    z: 0.0
-    w: 0.9996874
-  }
-  scale {
-    x: 0.3
-    y: 0.3
-    z: 1.0
+    x: 1.307
+    y: 1.271
+    z: 0.58
   }
 }

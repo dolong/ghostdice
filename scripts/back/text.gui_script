@@ -1,0 +1,59 @@
+--import button script from /in folder
+local button = require "in.button"
+local pressed = false
+local cardNamesModule = require "modules.card"  -- replace "path.to" with the actual path
+
+function init(self)
+	--register text game object as a button
+	button.acquire()
+	button.register("drawCards", function()
+		print ("Pressing a button!")
+		if not pressed then 
+			--spawn player cards and set their isDraggable property to true
+			local card_names = {"name1", "name2", "name3", "name4", "name5"}
+			
+			http.request("https://eowpwd5cdeevsfm.m.pipedream.net", "GET", function(self, id, response)
+				if response.status == 200 then
+					print(response.response)
+					local data = json.decode(response.response)  -- decode the JSON data
+					local card_names = data.names  -- extract the names from the data
+
+					for i = 1, #card_names do
+						local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
+						msg.post(card, "set_name", {name = card_names[i]})
+						cardNamesModule.cardNames[tostring(card)] = card_names[i]
+					end
+
+					--send message to the client that cards have been drawn
+					msg.post("/client#client", "draw", {player_id = self.player_id})
+				else
+					print("Error: ", response.status)
+				end
+			end)
+			
+			--for i = 1, 5 do
+			--	local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5	)
+			--	msg.post(card, "set_name", {name = card_names[i]})
+			--	cardNamesModule.cardNames[tostring(card)] = card_names[i]
+			--end
+			--send message to the client that cards have been drawn
+			--msg.post("/client#client", "draw")
+			pressed = true
+		end
+	end)
+	button.register("playOcean", function()
+		print ("Pressing a location!")
+			local land = factory.create("/spawner#landFactory", vmath.vector3(430 + (1 * 50), 270, 0), nil, {isDraggable = true}, .5	)
+				
+			--send message to the client that cards have been drawn
+			msg.post("/client#client", "plant location tile")
+	end)
+end
+
+function final(self)
+	button.unregister()
+end
+
+function on_input(self, action_id, action)
+	button.on_input(action_id, action)
+end
