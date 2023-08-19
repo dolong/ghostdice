@@ -1,0 +1,66 @@
+local button = require "in.button"
+local playersModule = require "modules.player"
+
+local function handleResponse(self, id, response)
+end
+
+local function get_query_parameters()
+	if html5 then
+		local url = html5.run("window.location")
+		-- get the query part of the url (the bit after ?)
+		local query = url:match(".*?(.*)")
+		if not query then
+			return {}
+		end
+
+		local params = {}
+		-- iterate over all key value pairs
+		for kvp in query:gmatch("([^&]+)") do
+			local key, value = kvp:match("(.+)=(.+)")
+			params[key] = value
+		end
+		return params
+	else 
+		return { user = "desktop" }
+	end
+end
+
+local function login()
+	print ("Pressing login!")
+	msg.post("loginpage#collectionproxy", "load")
+end
+
+function init(self)
+	local params = get_query_parameters() 
+	local user = params.user
+	
+	local player = playersModule.set_id(user)
+	
+	
+	local userid_node = gui.get_node("userid")
+
+
+	-- Set the text
+	gui.set_text(userid_node, "logged in as: " .. user)
+	
+	button.acquire()
+	button.register("loginbutton", login)
+end
+
+function final(self)
+	button.unregister()
+end
+
+function on_input(self, action_id, action)
+	button.on_input(action_id, action)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("proxy_loaded") then
+		-- When the collection has loaded, we enable it
+		msg.post(sender, "enable")
+		-- And then disable the login collection
+		-- Why this? ERROR:GAMESYS: The collection /main/main.collectionc could not be disabled since it is not enabled. Message 'disable' sent from login:/loginpage#loginmenu to login:/loginpage#.
+		msg.post(".", "disable")
+	end
+end

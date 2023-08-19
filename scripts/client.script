@@ -1,5 +1,10 @@
 --import Colyseus client
 local ColyseusClient = require "colyseus.client"
+local cardNamesModule = require "modules.card"  
+local zonesModule = require "modules.zones"
+local playersModule = require "modules.player"
+local cardDataModule = require "modules.cardData"
+local turnActionsModule = require "modules.turnActions"
 
 local client
 local room
@@ -33,33 +38,75 @@ end
 
 -- Callback function to handle game messages received from the server.
 function handleGameMessage(message)
-	print("Game message: " ..message)
-
-	if (message == "draw") then
+	print("Game message:")
+	for k, v in pairs(message) do
+		print(k, v)
+	end
+	if message.action == "draw" then
+		--print("This Players Name is: ", message.player_id)
+		playersModule.set_oppId(message.player_id)
 		opponent_drawhand()
-	elseif (message == "drop") then
-		opponent_drop()
+	elseif message.action == "drop" then
+		print('card object: ', message.playedCard)
+
+		local receivedCard = {
+			name = message.cardName,
+			power = message.cardPower,
+			cost = message.cardCost
+		}
+		print ('		recieved', receivedCard)
+		print ('		recieved', message.cardName)
+		
+		opponent_drop(message.zone, receivedCard)
+	elseif message.action == "end_turn" then
+		print(' opp ending turn')
+		turnActionsModule.oppEndTurn()
 	end
 end
 
 -- Creates an opponent card in the dropzone at the correct position and updates game manager.
-function opponent_drop()
-	local cardsInDropZone = go.get(gameManager, "cardsPlayed")
+
+function opponent_drop(zone, playedCard)
+	print('card object: ', playedCard)
+
+	local cardsInDropZone = go.get(gameManager, "cardsInZone" .. zone) -- Use the zone to index the property
 	local zPos = go.get(gameManager, "zPosition")
-	local p = vmath.vector3(850 + (cardsInDropZone * 50), 547, zPos)
+	local p = vmath.vector3(550 + ((zone-1)*300) + (cardsInDropZone * 50), 896, zPos)
 
-	factory.create("/spawner#opponentCardFactory", p, nil, nil, 0.3)
+	go.set(gameManager, "cardsInZone" .. zone, cardsInDropZone + 1) -- Increment the number of cards in the relevant zone
 
-	go.set(gameManager, "cardsPlayed", (cardsInDropZone + 1))
+	local cardGO = factory.create("/spawner#playerCardFactory", p, nil, nil, 0.3)
+
+	cardDataModule.add_opponent_card(playedCard)	
+	table.insert(cardDataModule.deck, playedCard)	
+	cardDataModule.cards[tostring(cardGO)] = playedCard 
+
+	print("Creating card with name:", playedCard.name)
+	msg.post(cardGO, "set_name", {name = playedCard.name})
+	msg.post(cardGO, "set_cost", {cost = playedCard.cost})
+	msg.post(cardGO, "set_power", {power = playedCard.power})
+	
+	print ("opponent ", playersModule.get_oppId(), " played a card in zone ", zone, ".")
+	print ("Card Name: ", playedCard.name)
+	print ("Card Cost: ", playedCard.cost)
+	print ("Card Power: ", playedCard.power)
+	print('Cards in Zone ', zone, ': ', go.get(gameManager, "cardsInZone" .. zone))
+
+	-- Add the card to the zone
+	zonesModule.add_opp_card(zone, tostring(cardGO))	
+	zonesModule.refresh_zone_tile_power()	
+
 	go.set(gameManager, "zPosition", (zPos + 0.01))
 
 	local cardsInOpponentHand = go.get(gameManager, "cardsInOpponentHand")
+
 
 	if cardsInOpponentHand > 0 then
 		go.delete(opponentCards[cardsInOpponentHand])
 		table.remove(opponentCards, cardsInOpponentHand)
 		go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
 	end
+
 end
 
 -- Creates opponent cards and updates game manager.
@@ -69,6 +116,7 @@ function opponent_drawhand()
 		table.insert(opponentCards, card)
 		go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
 	end
+	print ("opponent ", playersModule.get_oppId(), " drew")
 end
 
 -- Sends a message to the server when cards are drawn or played.
@@ -77,7 +125,11 @@ function on_message(self, message_id, message, sender)
 		room:send("game-message", {action="draw", player_id=message.player_id})
 		print("Cards drawn by player ", message.player_id)
 	elseif message_id == hash("drop") then
-		room:send("game-message", {action="drop", player_id=message.player_id, zone=message.zone})
-		print("Card dropped by player ", message.player_id)
+		room:send("game-message", {action="drop", player_id=message.player_id, zone=message.zone, cardName=message.cardName, cardCost=message.cardCost, cardPower=message.cardPower})
+		print(message.cardName," card dropped by player ", message.player_id)
+		--print("Card dropped by player ", message.player_id)
+	elseif message_id == hash("end_turn") then
+		room:send("game-message", {action="end_turn", player_id=message.player_id})
+		print("End turn by player ", message.player_id)
 	end
 end

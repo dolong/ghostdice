@@ -1,0 +1,38 @@
+local playersModule = require "modules.player"
+
+-- property to determine if the card is draggable
+go.property("isDraggable", true)
+
+-- Define the update function to get the current power for each zone
+-- local function update_energy(self)
+-- 
+-- 	local turn = playersModule.get_turn()
+-- 	local energy = playersModule.get_energy()
+-- 
+-- 	-- Construct the URL based on the determined zone
+-- 	local url = msg.url("energy" .. tostring(zone) .. url_suffix)
+-- 
+-- 	-- Update the label's text
+-- 	label.set_text(url, tostring(energy))
+-- 	
+-- end
+
+local function update_energy(self)
+	local energy = playersModule.get_energy()
+	print('energy update')
+	label.set_text(msg.url("energy#energyText"), tostring(energy))  -- Assuming the label's id is "energy"
+end
+
+function init(self)
+	local turn = playersModule.set_turn(1)
+	local energy = playersModule.set_energy(1)
+	-- If you want to set the cost for the energy, you should define a game object or component URL.
+	-- msg.post(target_url, "set_cost", {cost = energy})
+	update_energy(self)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("update_energy") then
+		update_energy(self)
+	end
+end

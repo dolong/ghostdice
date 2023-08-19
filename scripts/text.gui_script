@@ -1,39 +1,63 @@
 local button = require "in.button"
-local cardNamesModule = require "modules.card"  -- replace "path.to" with the actual path
+local cardModule = require "modules.card"  -- replace "path.to" with the actual path
+local playersModule = require "modules.player"
+local cardDataModule = require "modules.cardData"
+local turnActionsModule = require "modules.turnActions"
 
 local function handleResponse(self, id, response)
 	if response.status == 200 then
-		print(response.response)
-		local data = json.decode(response.response)  -- decode the JSON data
-		local card_names = data.names  -- extract the names from the data
-
-		for i = 1, #card_names do
-			local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
-			msg.post(card, "set_name", {name = card_names[i]})
-			cardNamesModule.cardNames[tostring(card)] = card_names[i]
+		local data = json.decode(response.response)
+		for i = 1, #data.names do
+			local card = {
+				name = data.names[i],
+				cost = data.costs[i],
+				power = data.powers[i],
+				-- You can add more attributes if needed
+			}
+			if i <= 5 then
+				cardDataModule.add_card_to_hand(card)
+			else
+				table.insert(cardDataModule.deck, card)
+			end
 		end
 
-		--send message to the client that cards have been drawn
-		msg.post("/client#client", "draw")
+		for i, card in ipairs(cardDataModule.hand) do
+			local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
+			cardDataModule.cards[tostring(cardGO)] = card 
+			
+			print("Creating card with name:", card.name)
+			msg.post(cardGO, "set_name", {name = card.name})
+			msg.post(cardGO, "set_cost", {cost = card.cost})
+			msg.post(cardGO, "set_power", {power = card.power})
+		end
+
+		-- Send message to the client that cards have been drawn
+		msg.post("/client#client", "draw", { player_id = playersModule.get_id() })
 	else
 		print("Error: ", response.status)
 	end
 end
 
-local function createCardsFromNames(card_names)
-	for i = 1, #card_names do
-		local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
-		msg.post(card, "set_name", {name = card_names[i]})
-		cardNamesModule.cardNames[tostring(card)] = card_names[i]
+local function drawCard()
+	print("Pressing Draw!")
+	turnActionsModule.drawCard()
+end
+
+--This action loads the json of cards from http request
+local function drawCards()
+	print("Pressing Starting Hand!")
+	if not pressed then 
+		local body = json.encode({cards = 12}) -- encoding data as a JSON string
+		local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+
+		http.request("https://eof12vdrp825kui.m.pipedream.net/", "POST", handleResponse, headers, body)
+		pressed = true
 	end
 end
 
-local function drawCards()
-	print ("Pressing a button!")
-	if not pressed then 
-		http.request("https://eowpwd5cdeevsfm.m.pipedream.net", "GET", handleResponse)
-		pressed = true
-	end
+local function assignDeck()
+	-- drawCards off screen
+	--local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
 end
 
 local function playOcean()
@@ -42,10 +66,19 @@ local function playOcean()
 	msg.post("/client#client", "plant location tile")
 end
 
+local function endTurn()
+	print ("Pressing End Turn")
+	msg.post("/client#client", "end_turn", { player_id = playersModule.get_id() })
+	turnActionsModule.endTurn()
+end
+
+
 function init(self)
 	button.acquire()
+	button.register("drawCard", drawCard)
 	button.register("drawCards", drawCards)
 	button.register("playOcean", playOcean)
+	button.register("endTurn", endTurn)
 end
 
 function final(self)

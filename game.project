@@ -1,13 +1,13 @@
 [bootstrap]
-main_collection = /main/main.collectionc
+main_collection = /main/login.collectionc
 
 [script]
 shared_state = 1
 
 [display]
-width = 1560
+width = 1388
 height = 1280
-high_dpi = 1
+high_dpi = 0
 vsync = 1
 
 [android]
@@ -21,4 +21,13 @@ dependencies#2 = https://github.com/defold/extension-websocket/archive/master.zi
 
 [graphics]
 texture_profiles = /main/textureProfile.texture_profiles
+
+[html5]
+splash_image = /assets/Logo_main_Color.png
+
+[sprite]
+subpixels = 0
+
+[label]
+max_count = 128
 

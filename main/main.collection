@@ -1,6 +1,6 @@
 name: "main"
 instances {
-  id: "landTile"
+  id: "landTile1"
   prototype: "/gameobjects/landTile.go"
   position {
     x: 567.0
@@ -20,7 +20,7 @@ instances {
   }
 }
 instances {
-  id: "landTile1"
+  id: "landTile2"
   prototype: "/gameobjects/landTile.go"
   position {
     x: 873.0
@@ -40,7 +40,7 @@ instances {
   }
 }
 instances {
-  id: "landTile2"
+  id: "landTile3"
   prototype: "/gameobjects/landTile.go"
   position {
     x: 1170.0
@@ -81,7 +81,7 @@ embedded_instances {
   "}\n"
   "components {\n"
   "  id: \"cursorController\"\n"
-  "  component: \"/scripts/back/cursorController1.script\"\n"
+  "  component: \"/scripts/cursorController.script\"\n"
   "  position {\n"
   "    x: 0.0\n"
   "    y: 0.0\n"
@@ -281,7 +281,7 @@ embedded_instances {
   "  id: \"sprite\"\n"
   "  type: \"sprite\"\n"
   "  data: \"tile_set: \\\"/atlases/backgroundAtlas.atlas\\\"\\n"
-  "default_animation: \\\"blue\\\"\\n"
+  "default_animation: \\\"grey\\\"\\n"
   "material: \\\"/builtins/materials/tile_map.material\\\"\\n"
   "blend_mode: BLEND_MODE_ALPHA\\n"
   "\"\n"
@@ -302,10 +302,30 @@ embedded_instances {
   "    z: 1.0\n"
   "  }\n"
   "}\n"
+  "embedded_components {\n"
+  "  id: \"bg\"\n"
+  "  type: \"sprite\"\n"
+  "  data: \"tile_set: \\\"/atlases/backgroundAtlas.atlas\\\"\\n"
+  "default_animation: \\\"stonebg\\\"\\n"
+  "material: \\\"/builtins/materials/tile_map.material\\\"\\n"
+  "blend_mode: BLEND_MODE_ALPHA\\n"
+  "\"\n"
+  "  position {\n"
+  "    x: 2619.0\n"
+  "    y: 749.0\n"
+  "    z: 0.1\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
   ""
   position {
-    x: -4.0
-    y: 6.0
+    x: 0.0
+    y: 0.0
     z: 0.0
   }
   rotation {
@@ -585,10 +605,10 @@ embedded_instances {
   }
 }
 embedded_instances {
-  id: "go"
-  children: "landTile"
+  id: "land"
   children: "landTile1"
   children: "landTile2"
+  children: "landTile3"
   data: ""
   position {
     x: 0.0
@@ -980,6 +1000,116 @@ embedded_instances {
     y: 0.0
     z: -1.0
     w: 6.123234E-17
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "energy"
+  data: "components {\n"
+  "  id: \"energy\"\n"
+  "  component: \"/scripts/energy.script\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "  property_decls {\n"
+  "  }\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"energyText\"\n"
+  "  type: \"label\"\n"
+  "  data: \"size {\\n"
+  "  x: 128.0\\n"
+  "  y: 32.0\\n"
+  "  z: 0.0\\n"
+  "  w: 0.0\\n"
+  "}\\n"
+  "color {\\n"
+  "  x: 0.0\\n"
+  "  y: 0.0\\n"
+  "  z: 0.0\\n"
+  "  w: 1.0\\n"
+  "}\\n"
+  "outline {\\n"
+  "  x: 0.0\\n"
+  "  y: 0.0\\n"
+  "  z: 0.0\\n"
+  "  w: 1.0\\n"
+  "}\\n"
+  "shadow {\\n"
+  "  x: 0.0\\n"
+  "  y: 0.0\\n"
+  "  z: 0.0\\n"
+  "  w: 1.0\\n"
+  "}\\n"
+  "leading: 1.0\\n"
+  "tracking: 0.0\\n"
+  "pivot: PIVOT_CENTER\\n"
+  "blend_mode: BLEND_MODE_ALPHA\\n"
+  "line_break: false\\n"
+  "text: \\\"1\\\\t\\\"\\n"
+  "font: \\\"/builtins/fonts/system_font.font\\\"\\n"
+  "material: \\\"/builtins/fonts/label.material\\\"\\n"
+  "\"\n"
+  "  position {\n"
+  "    x: 1234.0\n"
+  "    y: 60.0\n"
+  "    z: 0.1\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "  scale {\n"
+  "    x: 3.0\n"
+  "    y: 3.0\n"
+  "    z: 1.0\n"
+  "  }\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"sprite\"\n"
+  "  type: \"sprite\"\n"
+  "  data: \"tile_set: \\\"/atlases/uiAtlas.atlas\\\"\\n"
+  "default_animation: \\\"square\\\"\\n"
+  "material: \\\"/builtins/materials/sprite.material\\\"\\n"
+  "blend_mode: BLEND_MODE_ALPHA\\n"
+  "\"\n"
+  "  position {\n"
+  "    x: 1237.0\n"
+  "    y: 65.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
+  ""
+  position {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
   }
   scale3 {
     x: 1.0
