@@ -89,4 +89,13 @@ function M.play_actions()
 	M.playedActions = {}
 end
 
+function M.card_effect()
+end
+
+function M.card_effect()
+end
+
+function M.modify_card_power()	
+end
+
 return M

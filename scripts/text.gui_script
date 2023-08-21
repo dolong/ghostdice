@@ -1,5 +1,4 @@
 local button = require "in.button"
-local cardModule = require "modules.card"  -- replace "path.to" with the actual path
 local playersModule = require "modules.player"
 local cardDataModule = require "modules.cardData"
 local turnActionsModule = require "modules.turnActions"
@@ -11,7 +10,7 @@ local function handleResponse(self, id, response)
 			local card = {
 				name = data.names[i],
 				cost = data.costs[i],
-				power = data.powers[i],
+				power = data.powers[i]
 				-- You can add more attributes if needed
 			}
 			if i <= 5 then
@@ -60,7 +59,7 @@ local function assignDeck()
 	--local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
 end
 
-local function playOcean()
+local function playLand()
 	print ("Pressing a location!")
 	local land = factory.create("/spawner#landFactory", vmath.vector3(430 + (1 * 50), 270, 0), nil, {isDraggable = true}, .5)
 	msg.post("/client#client", "plant location tile")
@@ -77,7 +76,7 @@ function init(self)
 	button.acquire()
 	button.register("drawCard", drawCard)
 	button.register("drawCards", drawCards)
-	button.register("playOcean", playOcean)
+	button.register("playLand", playLand)
 	button.register("endTurn", endTurn)
 end
 
