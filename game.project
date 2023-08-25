@@ -18,9 +18,12 @@ title = 2D Card Game
 dependencies#0 = https://github.com/britzl/defold-input/archive/master.zip
 dependencies#1 = https://github.com/colyseus/colyseus-defold/archive/0.15.zip
 dependencies#2 = https://github.com/defold/extension-websocket/archive/master.zip
+dependencies#3 = https://github.com/Insality/druid/archive/refs/tags/0.11.0.zip
 
 [graphics]
 texture_profiles = /main/textureProfile.texture_profiles
+default_texture_min_filter = nearest
+default_texture_mag_filter = nearest
 
 [html5]
 splash_image = /assets/Logo_main_Color.png
@@ -30,4 +33,7 @@ subpixels = 0
 
 [label]
 max_count = 128
+
+[input]
+game_binding = /builtins/input/all.input_bindingc
 

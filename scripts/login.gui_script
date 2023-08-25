@@ -1,5 +1,7 @@
 local button = require "in.button"
 local playersModule = require "modules.player"
+local druid = require("druid.druid")
+local input = require("druid.extended.input")
 
 local function handleResponse(self, id, response)
 end
@@ -30,37 +32,75 @@ local function login()
 	msg.post("loginpage#collectionproxy", "load")
 end
 
+local function on_button_callback(self)
+	print("Button was clicked!")
+
+	local text = self.login_name:get_text()
+	print(text)
+	local player = playersModule.set_id(text)
+	login() -- Call the login function when the button is clicked.
+end
+
+local function register_druid_extended_components(self)
+	druid.register("input", input)
+end
+
+local function on_input_select(self)
+	print("Input box selected!")
+	self.login_name:set_text("") -- Clear the text when the input box is selected
+end
+
 function init(self)
 	local params = get_query_parameters() 
 	local user = params.user
-	
-	local player = playersModule.set_id(user)
-	
-	
+
 	local userid_node = gui.get_node("userid")
 
-
 	-- Set the text
-	gui.set_text(userid_node, "logged in as: " .. user)
-	
-	button.acquire()
-	button.register("loginbutton", login)
+	if (user) then
+		gui.set_text(userid_node, "logged in as: " .. user)
+	end
+	self.druid = druid.new(self)
+	register_druid_extended_components(self)
+	self.button = self.druid:new_button("loginbutton", on_button_callback)
+	self.login_name = self.druid:new_input("inputbox", "username")
+
+
+	-- Subscribe to the on_input_select event
+	self.login_name.on_input_select:subscribe(on_input_select, self)
 end
+
 
 function final(self)
-	button.unregister()
+	self.druid:final()
+	-- button.unregister()
 end
+
 
 function on_input(self, action_id, action)
-	button.on_input(action_id, action)
+	--print("Handling input: " .. tostring(action_id))
+	if action_id == hash("input_select") then
+		print("selected")
+		on_input_select(self, action_id, action)
+	end
+	return self.druid:on_input(action_id, action)
+	-- button.on_input(action_id, action)
 end
 
+-- 
+-- -- "update" is used in progress bar, scroll, and timer basic components
+-- function update(self, dt)
+-- 	self.druid:update(dt)
+-- end
+
 function on_message(self, message_id, message, sender)
+	self.druid:on_message(message_id, message, sender) -- Druid's on_message
+
 	if message_id == hash("proxy_loaded") then
 		-- When the collection has loaded, we enable it
 		msg.post(sender, "enable")
+
 		-- And then disable the login collection
-		-- Why this? ERROR:GAMESYS: The collection /main/main.collectionc could not be disabled since it is not enabled. Message 'disable' sent from login:/loginpage#loginmenu to login:/loginpage#.
 		msg.post(".", "disable")
 	end
 end
