@@ -34,6 +34,12 @@ function handleRoomCreation(err, _room)
 	end)
 
 	room:on_message("game-message", handleGameMessage)
+
+	turnActionsModule.drawCard()
+	turnActionsModule.drawCard()
+	turnActionsModule.drawCard()
+	turnActionsModule.drawCard()
+	turnActionsModule.drawCard()
 end
 
 -- Callback function to handle game messages received from the server.
@@ -45,7 +51,22 @@ function handleGameMessage(message)
 	if message.action == "draw" then
 		--print("This Players Name is: ", message.player_id)
 		playersModule.set_oppId(message.player_id)
-		opponent_drawhand()
+
+		--TODO: make this where drawing happens for both players
+		opponent_drawCard()
+	elseif message.action == "addOpponentDeck" then
+		print("opponent loaded card to deck")
+		local card = {
+			name = message.cardName,
+			cost = message.cardCost,
+			power = message.cardPower
+		}
+
+		-- TODO: Consider this where both players decks load in locally
+		
+		table.insert(cardDataModule.opponentDeck, card)
+
+		print("Card added to opponent deck: ", message.cardName)
 	elseif message.action == "drop" then
 		print('card object: ', message.playedCard)
 
@@ -56,9 +77,15 @@ function handleGameMessage(message)
 		}
 		print ('		recieved', receivedCard)
 		print ('		recieved', message.cardName)
+
+		-- TODO: Consider this where both players played cards load in locally
 		
 		opponent_drop(message.zone, receivedCard)
 	elseif message.action == "end_turn" then
+
+
+		-- TODO: There is a bug where players can increase energy without both sides
+		
 		print(' opp ending turn')
 		turnActionsModule.oppEndTurn()
 	end
@@ -71,13 +98,14 @@ function opponent_drop(zone, playedCard)
 
 	local cardsInDropZone = go.get(gameManager, "cardsInZone" .. zone) -- Use the zone to index the property
 	local zPos = go.get(gameManager, "zPosition")
-	local p = vmath.vector3(550 + ((zone-1)*300) + (cardsInDropZone * 50), 896, zPos)
+	local p = vmath.vector3(128 + ((zone-1)*200) + (cardsInDropZone * 50), 730, zPos)
 
 	go.set(gameManager, "cardsInZone" .. zone, cardsInDropZone + 1) -- Increment the number of cards in the relevant zone
 
-	local cardGO = factory.create("/spawner#playerCardFactory", p, nil, nil, 0.3)
+	--opponent card spawning on the board
+	local cardGO = factory.create("/spawner#playerCardFactory", p, nil, nil, 0.44)
 
-	cardDataModule.add_opponent_card(playedCard)	
+	cardDataModule.add_opponent_played_card(playedCard)	
 	table.insert(cardDataModule.deck, playedCard)	
 	cardDataModule.cards[tostring(cardGO)] = playedCard 
 
@@ -98,13 +126,12 @@ function opponent_drop(zone, playedCard)
 
 	go.set(gameManager, "zPosition", (zPos + 0.01))
 
-	local cardsInOpponentHand = go.get(gameManager, "cardsInOpponentHand")
+	local cardsInOpponentDeck = go.get(gameManager, "cardsInOpponentDeck")
 
-
-	if cardsInOpponentHand > 0 then
-		go.delete(opponentCards[cardsInOpponentHand])
-		table.remove(opponentCards, cardsInOpponentHand)
-		go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
+	if cardsInOpponentDeck > 0 then
+		go.delete(opponentCards[cardsInOpponentDeck])
+		table.remove(opponentCards, cardsInOpponentDeck)
+		go.set(gameManager, "cardsInOpponentDeck", table.getn(opponentCards))
 	end
 
 end
@@ -112,11 +139,24 @@ end
 -- Creates opponent cards and updates game manager.
 function opponent_drawhand()
 	for i = 1,5 do
-		local card = factory.create("/spawner#opponentCardBackFactory", vmath.vector3(610 + (i * 50), 1210, 0), nil, nil, 0.3)
-		table.insert(opponentCards, card)
-		go.set(gameManager, "cardsInOpponentHand", table.getn(opponentCards))
+		opponent_drawCard()
 	end
-	print ("opponent ", playersModule.get_oppId(), " drew")
+end
+
+
+function opponent_drawCard()
+	local opponentHandSize = cardDataModule.getOpponentHandSize()
+	local card = factory.create("/spawner#opponentCardBackFactory", vmath.vector3(640 + (opponentHandSize * 10), 1070, 1), nil, nil, 0.2)
+	print ("opponent hand size: ", opponentHandSize + 1)
+	cardDataModule.addOpponentCardToHandSize()
+	
+	--cardDataModule.add_opponent_hand(cardName, cardCost, cardPower)
+	-- -- cardDataModule.add_opponent_played_card(card)
+	-- table.insert(opponentCards, card)
+	-- go.set(gameManager, "cardsInOpponentDeck", #opponentCards) -- Using # to get the length of the table
+	
+	
+	print("opponent ", playersModule.get_oppId(), " drew")
 end
 
 -- Sends a message to the server when cards are drawn or played.
@@ -128,6 +168,9 @@ function on_message(self, message_id, message, sender)
 		room:send("game-message", {action="drop", player_id=message.player_id, zone=message.zone, cardName=message.cardName, cardCost=message.cardCost, cardPower=message.cardPower})
 		print(message.cardName," card dropped by player ", message.player_id)
 		--print("Card dropped by player ", message.player_id)
+	elseif message_id == hash("addOpponentDeck") then
+		room:send("game-message", {action="addOpponentDeck", player_id=message.player_id, cardName=message.cardName, cardCost=message.cardCost, cardPower=message.cardPower})
+		print("Add Opponent Deck message sent by player ", message.player_id)		
 	elseif message_id == hash("end_turn") then
 		room:send("game-message", {action="end_turn", player_id=message.player_id})
 		print("End turn by player ", message.player_id)

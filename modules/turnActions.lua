@@ -41,21 +41,62 @@ function M.newTurn()
 	M.oppPlayerEnded = false
 end
 
+function M.opponentDrawCard() 
+	local i = cardDataModule.getOpponentHandSize()()
+	local card = cardDataModule.remove_card_from_opponent_deck()  -- Remove the top card from the deck and return it temp
+	cardDataModule.add_card_to_opponent_hand(card)
+	local cardNumber = #cardDataModule.opponentHand
+
+	-- Spawn a back card
+	local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(180 + (i * 76), 190, 0.1), nil, {isDraggable = true}, .5)
+	cardDataModule.cards[tostring(cardGO)] = card
+	
+	print("Opponent Drew", card.name)
+	msg.post(cardGO, "set_name", {name = card.name})
+	msg.post(cardGO, "set_cost", {cost = card.cost})
+	msg.post(cardGO, "set_power", {power = card.power})
+
+end
+
 function M.drawCard() 
-
+	local i = cardDataModule.getHandSize()
 	local card = cardDataModule.remove_card_from_deck()  -- Remove the top card from the deck
-	cardDataModule.add_card_to_hand(card)  -- Add to the hand
-
+	cardDataModule.add_card_to_hand(card)
 	local cardNumber = #cardDataModule.hand
-	local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (cardNumber * 50), 40, 0), nil, {isDraggable = true}, .5)
+
+	-- probably should use the card hand from text.gui
+	
+	local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(180 + (i * 76), 190, 0), nil, {isDraggable = true}, .5)
+	msg.post(cardGO , "delete_description")
+	
 	cardDataModule.cards[tostring(cardGO)] = card
 	print("Creating card with name:", card.name)
 	msg.post(cardGO, "set_name", {name = card.name})
 	msg.post(cardGO, "set_cost", {cost = card.cost})
 	msg.post(cardGO, "set_power", {power = card.power})
-	msg.post("/client#client", "draw", { player_id = playersModule.get_id() })
+	--msg.post(cardGO, "set_image", {image = "chara_portraits_batch1_axolotl"})
+
+	print("setting image")
 	
+	msg.post("/client#client", "draw", { player_id = playersModule.get_id(), cardName = card.name, cardCost = card.cost, cardPower = card.power })	
 end
+
+-- 
+-- function M.drawHand() 
+-- 	local card = cardDataModule.remove_card_from_deck()  -- Remove the top card from the deck
+-- 	cardDataModule.add_card_to_hand(card)  -- Add to the hand
+-- 
+-- 	local cardNumber = #cardDataModule.hand
+-- 	local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(180 + (i * 76), 190, 0.1), nil, {isDraggable = true}, .5)
+-- 	cardDataModule.cards[tostring(cardGO)] = card
+-- 	print("Creating card with name:", card.name)
+-- 	msg.post(cardGO, "set_name", {name = card.name})
+-- 	msg.post(cardGO, "set_cost", {cost = card.cost})
+-- 	msg.post(cardGO, "set_power", {power = card.power})
+-- 
+-- 	
+-- 	msg.post("/client#client", "draw", { player_id = playersModule.get_id() })
+-- end
 
 -- Queues the message into the playedActions table
 function M.queue_message(zone, player, cardName, cardPower, cardCost) 
@@ -83,10 +124,18 @@ function M.play_actions()
 				cardPower = action.cardPower, 
 				cardCost = action.cardCost
 			})
+			print("creating character")
+			createCharacter(action.zone, action.player)
 		end
 	end
+
 	-- Clear the actions table after processing
 	M.playedActions = {}
+end
+
+function createCharacter(zone)
+	print("factory creating character")
+	factory.create(msg.url("/spawner#characterFactory"), vmath.vector3(422, 920, 0), nil, {isDraggable = false}, .5)
 end
 
 function M.card_effect()

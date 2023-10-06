@@ -6,6 +6,7 @@ local player_id = nil
 local opp_id = nil
 local energy = 0
 local turn = 0
+local cardsInHand = 0
 
 function M.set_id(id)
 	player_id = id

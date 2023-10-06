@@ -1,6 +1,7 @@
+-- TO DELETE, probably not used other than zPosition
 go.property("zPosition", 0.01)
 go.property("cardsPlayed", 0)
-go.property("cardsInOpponentHand", 0)
+go.property("cardsInOpponentDeck", 0)
 go.property("cardsInZone1", 0)
 go.property("cardsInZone2", 0)
 go.property("cardsInZone3", 0)

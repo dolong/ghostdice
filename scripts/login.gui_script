@@ -2,9 +2,8 @@ local button = require "in.button"
 local playersModule = require "modules.player"
 local druid = require("druid.druid")
 local input = require("druid.extended.input")
-
-local function handleResponse(self, id, response)
-end
+local progress = require("druid.extended.progress")
+local timer_component = require("druid.extended.timer")
 
 local function get_query_parameters()
 	if html5 then
@@ -32,8 +31,13 @@ local function login()
 	msg.post("loginpage#collectionproxy", "load")
 end
 
+local function search()
+	print ("Pressing Search!")
+	msg.post("loginpage#searchproxy", "load")
+end
+
 local function on_button_callback(self)
-	print("Button was clicked!")
+	print("Start Button was clicked!")
 
 	local text = self.login_name:get_text()
 	print(text)
@@ -41,8 +45,19 @@ local function on_button_callback(self)
 	login() -- Call the login function when the button is clicked.
 end
 
+local function on_button_callback2(self)
+	print("Search Button was clicked!")
+
+	local text = self.login_name:get_text()
+	print(text)
+	local player = playersModule.set_id(text)
+	search() -- Call the search function when the button is clicked.
+end
+
 local function register_druid_extended_components(self)
 	druid.register("input", input)
+	druid.register("progress", progress)
+	druid.register("timer", timer_component)
 end
 
 local function on_input_select(self)
@@ -63,6 +78,7 @@ function init(self)
 	self.druid = druid.new(self)
 	register_druid_extended_components(self)
 	self.button = self.druid:new_button("loginbutton", on_button_callback)
+	self.button = self.druid:new_button("SearchB/button", on_button_callback2)
 	self.login_name = self.druid:new_input("inputbox", "username")
 
 

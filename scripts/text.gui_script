@@ -3,64 +3,81 @@ local playersModule = require "modules.player"
 local cardDataModule = require "modules.cardData"
 local turnActionsModule = require "modules.turnActions"
 
+local function drawCard()
+	print("Pressing Draw!")
+	turnActionsModule.drawCard()
+end
+
+function init(self)
+	print("text.gui_script initialized")
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("draw_cards") then
+		for k = 1, 5 do
+			drawCard()
+		end
+	end
+end
+-- TODO: Make handleResponse call externalCall.script
 local function handleResponse(self, id, response)
+
+	local handSize = 5
 	if response.status == 200 then
 		local data = json.decode(response.response)
 		for i = 1, #data.names do
 			local card = {
 				name = data.names[i],
 				cost = data.costs[i],
-				power = data.powers[i]
+				power = data.powers[i],
+				-- image = "",
+				-- description = ""
+			
 				-- You can add more attributes if needed
 			}
-			if i <= 5 then
-				cardDataModule.add_card_to_hand(card)
-			else
-				table.insert(cardDataModule.deck, card)
+			table.insert(cardDataModule.deck, card)
+
+			-- sends the deck to opponent to add
+			msg.post("/client#client", "addOpponentDeck", { player_id = playersModule.get_id(), cardName = data.names[i], cardCost = data.costs[i], cardPower = data.powers[i]})
 			end
-		end
 
-		for i, card in ipairs(cardDataModule.hand) do
-			local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
-			cardDataModule.cards[tostring(cardGO)] = card 
-			
-			print("Creating card with name:", card.name)
-			msg.post(cardGO, "set_name", {name = card.name})
-			msg.post(cardGO, "set_cost", {cost = card.cost})
-			msg.post(cardGO, "set_power", {power = card.power})
-		end
+		
 
-		-- Send message to the client that cards have been drawn
-		msg.post("/client#client", "draw", { player_id = playersModule.get_id() })
 	else
 		print("Error: ", response.status)
 	end
 end
 
-local function drawCard()
-	print("Pressing Draw!")
-	turnActionsModule.drawCard()
+
+local function callDrawCardsExternal()
+	local body = json.encode({cards = 12}) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request("https://eof12vdrp825kui.m.pipedream.net/", "POST", handleResponse, headers, body)
+	-- go to handleResponse(self, id, response) next
 end
-
+	
 --This action loads the json of cards from http request
-local function drawCards()
-	print("Pressing Starting Hand!")
+local function drawCards(self)
+	print("Starting a new game!")
 	if not pressed then 
-		local body = json.encode({cards = 12}) -- encoding data as a JSON string
-		local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-
-		http.request("https://eof12vdrp825kui.m.pipedream.net/", "POST", handleResponse, headers, body)
+		--callDrawCardsExternal()
+		--Draw hand
+		for k = 1, 5 do
+			drawCard()
+		end
+		
 		pressed = true
 	end
 end
 
 local function assignDeck()
 	-- drawCards off screen
-	--local card = factory.create("/spawner#playerCardFactory", vmath.vector3(610 + (i * 50), 40, 0), nil, {isDraggable = true}, .5)
 end
 
 local function playLand()
 	print ("Pressing a location!")
+
+	print("factory creating character")
 	local land = factory.create("/spawner#landFactory", vmath.vector3(430 + (1 * 50), 270, 0), nil, {isDraggable = true}, .5)
 	msg.post("/client#client", "plant location tile")
 end

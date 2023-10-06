@@ -1,6 +1,15 @@
 --set "isDraggable" property of card to initially be false
 go.property("isDraggable", false)
 
+-- Define the set_image function
+function set_image(image)
+	if image and #image > 0 then
+		sprite.play_flipbook(msg.url("#portrait"), hash(image))
+	else
+		print("Error: No image specified")
+	end
+end
+
 function on_message(self, message_id, message, sender)
 	--to do find out why sometimes there is nil message.name
 	if message_id == hash("set_name") then
@@ -15,12 +24,29 @@ function on_message(self, message_id, message, sender)
 		end
 	end
 
+	if message_id == hash("set_description") then
+		if message.cost then
+			label.set_text(msg.url("#cardDescription"), message.cost)
+		end
+	end
+	
+	if message_id == hash("delete_description") then
+		label.set_text(msg.url("#cardDescription"), "")
+	end
 
 	if message_id == hash("set_power") then
 		if message.power then
 			label.set_text(msg.url("#cardPower"), message.power)
 		end
 	end
+	
+	if message_id == hash("set_image") then
+		if message.image then
+			print ("image set to ", message.image)
+			set_image(message.image)
+		end
+	end
+	
 	if message_id == hash("morph") then
 		--go.set("#cardName", "text", message.name)
 		label.set_text(msg.url("#cardName"), message.name)

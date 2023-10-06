@@ -10,7 +10,6 @@ local zonesModule = require "modules.zones"
 local playersModule = require "modules.player"
 local turnActionsModule = require "modules.turnActions"
 local zoomedCardID = nil
-local origin
 
 function init(self)
 	--if the cursor doesn't already have input focus, assign it input focus, and forward any input messages to be parsed by the on_message function
@@ -21,15 +20,12 @@ function init(self)
 
 	--listen for cursor drag input
 	cursor.listen(msg.url("#cursor"), cursor.DRAG_START, function (message_id, message)
-		--uncomment to print ("drag")
-		--determine whether card should be draggable based on their group
 		if message.group == hash("playerCard") or message.group == hash("opponentCard") then
 			if canDragCard == false then
 				return true
 			end
 			print("Dragging a card!")
 			dragingcard = true
-			origin = go.get_position(message.id)
 		elseif message.group == hash("dropzone") then
 			--prevent dragging of dropzones
 
@@ -56,7 +52,7 @@ function on_message(self, message_id, message, sender)
 	local draginit
 	local dragingcard = false
 	if message_id == cursor.OVER then
-		--uncomment to 
+		--print("Cursor over", transformed_pos.group)
 		print("Cursor over", message.id, message.group, message.x, message.y)
 		--track when the cursor enters over the dropzone
 		if message.group == hash("dropzone") then
@@ -82,7 +78,6 @@ function on_message(self, message_id, message, sender)
 			
 			print("message.id:", tostring(message.id))
 			print('this is a card')
-			origin = go.get_position(message.id)
 			
 			
 			if isZooming and message.id == zoomedCardID then
@@ -90,9 +85,6 @@ function on_message(self, message_id, message, sender)
 				return -- exit early if hovering over the zoomedCard
 			end
 			
-			-- Fetch card attributes using the refactored module
-			--print(cardDataModule)
-			--print(cardDataModule.cards)
 			print("message.id:", tostring(message.id))
 
 			local card = cardDataModule.cards[tostring(message.id)]
@@ -102,13 +94,14 @@ function on_message(self, message_id, message, sender)
 
 				if not isZooming then
 					if message.group == hash("playerCard") then
-						zoomedCard = factory.create("/spawner#playerCardFactory", vmath.vector3(message.x, (message.y + 240), 0), nil, {isDraggable = true}, 1)
+						zoomedCard = factory.create("/spawner#playerCardFactory", vmath.vector3(message.x, (message.y + 240), 0.1), nil, {isDraggable = true}, 1)
 						zoomedCardID = zoomedCard
 						msg.post(zoomedCard, "set_name", {name = card.name})
 						msg.post(zoomedCard, "set_cost", {cost = card.cost})
 						msg.post(zoomedCard, "set_power", {power = card.power})
 						msg.post(zoomedCard, "initialize_and_disable_collision")
 					else
+						--check if this is used
 						zoomedCard = factory.create("/spawner#opponentCardFactory", vmath.vector3(message.x, (message.y + 400), 1), nil, nil, 0.66)
 						zoomedCardID = zoomedCard
 						delay_and_disable_collision(zoomedCard)
@@ -147,16 +140,6 @@ function on_message(self, message_id, message, sender)
 		end
 	elseif message_id == cursor.CLICKED then
 	elseif message_id == cursor.DRAG_START then
-		--uncomment to print("Drag started", message.id, message.group, message.x, message.y)
-		--set the z position to bring the dragged card to top
-		--local zPos = go.get(gameManager, "zPosition")
-		print("Drag started :", origin)
-		--This line screws up the card info
-		--drag_init = (vmath.vector3(p.x, p.y, zPos), message.id)
-		--go.set_position(vmath.vector3(p.x, p.y, zPos), message.id)
-		
-		-- increment the current zPosition in the gameManager
-		--go.set(gameManager, "zPosition", (zPos + 0.01))
 	elseif message_id == cursor.DRAG_END then
 		print("Drag ended", message.id, message.group, message.x, message.y)
 
@@ -174,10 +157,6 @@ function on_message(self, message_id, message, sender)
 				
 				local player = playersModule.get_id()
 				
-				-- if (message.group == hash("opponentCard")) then
-				-- 	player = playersModule.get_oppId()
-				-- end
-
 				turnActionsModule.queue_message(self.zone, player, card.name, card.power, card.cost)
 				
 			else
@@ -185,26 +164,27 @@ function on_message(self, message_id, message, sender)
 			end
 		else
 			local zPos = go.get(gameManager, "zPosition")
-			--this sometimes makes the card disappear
-			--go.set_position(vmath.vector3(origin.x, origin.y, zPos), message.id)
-
-			print('dropped ', message.id, origin.x, origin.y, zPos)
 			dragingcard = false
 			
 		end
 		
 	elseif message_id == cursor.DRAG then
-		--uncomment to print("Drag", message.id, message.group, message.x, message.y, message.dx, message.dy)
 	end
-	-- 
+
+	
 	function move_card_to_zone(message_id, zone)
 
 		print('moving card to zone')
 		local zPos = go.get(gameManager, "zPosition")
 		local cardsInDropZone = go.get(gameManager, "cardsPlayed")
-		local p = vmath.vector3(550 + ((zone-1)*300)+(cardsInDropZone*20), 400, zPos)
+
+		local slotx, sloty = zonesModule.calculate_slot_position(cardsInDropZone)		
+		local p = vmath.vector3(128 + ((zone-1)*200) + slotx, 455 + sloty, 0)
+		
 		go.set_position(p, message_id)
 
+		go.set_scale(0.44, message_id)
+		
 		-- Make cards not draggable once dropped
 		local url = msg.url(message_id)
 		url.fragment = "card"

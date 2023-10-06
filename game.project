@@ -1,14 +1,17 @@
 [bootstrap]
 main_collection = /main/login.collectionc
+render = /scripts/render/fixed_aspect_ratio.renderc
 
 [script]
 shared_state = 1
 
 [display]
-width = 1388
+width = 720
 height = 1280
 high_dpi = 0
-vsync = 1
+vsync = 0
+fullscreen = 0
+dynamic_orientation = 0
 
 [android]
 input_method = HiddenInputField
@@ -30,6 +33,7 @@ splash_image = /assets/Logo_main_Color.png
 
 [sprite]
 subpixels = 0
+max_count = 800
 
 [label]
 max_count = 128

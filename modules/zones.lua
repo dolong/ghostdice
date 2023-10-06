@@ -78,8 +78,22 @@ function M.get_cards(zone_number)
 	return M.zones[zone_number].cards
 end
 
--- Opponent zones functions (these seem fine as they are)
+function M.calculate_slot_position(cardsInDropZone)
+	local slotx, sloty = 0, 0
 
+	if cardsInDropZone == 1 then
+		-- Do nothing as both slotx and sloty are 0
+		slotx = 70
+	elseif cardsInDropZone == 2 then
+		sloty = -95
+	elseif cardsInDropZone == 3 then
+		slotx = 70
+		sloty = -95
+	elseif cardsInDropZone == 4 then
+	end
+
+	return slotx, sloty
+end
 -- Function to add a card to a specific zone
 function M.add_opp_card(zone_number, card_instance)
 	table.insert(M.oppZones[zone_number].cards, card_instance)
