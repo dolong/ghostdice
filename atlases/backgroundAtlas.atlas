@@ -39,7 +39,7 @@ images {
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/assets/wildkraft_mainscreen_wip.png"
+  image: "/assets/wild_stone_main.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 animations {

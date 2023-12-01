@@ -8,6 +8,76 @@ M.opponentHand = {}
 M.opponentPlayedCards = {} -- So far this is opponents Played Cards
 M.opponentHandSize = 0 -- TODO: Utilize this
 
+function formatNewlines(str, maxLineLength)
+	local result = ""
+	local lineStart = 1
+	local strLength = string.len(str)
+
+	while lineStart <= strLength do
+		local lineEnd = lineStart + maxLineLength - 1
+		if lineEnd >= strLength then
+			-- Add the rest of the string if it's shorter than maxLineLength
+			result = result .. string.sub(str, lineStart, strLength)
+			break
+		else
+			-- Find the last space in the substring
+			local spacePos = lineEnd
+			while spacePos >= lineStart and string.sub(str, spacePos, spacePos) ~= " " do
+				spacePos = spacePos - 1
+			end
+			if spacePos < lineStart then
+				-- No spaces found, have to break a word
+				spacePos = lineEnd
+			end
+			-- Add the substring from lineStart to the last space
+			result = result .. string.sub(str, lineStart, spacePos)
+			-- If not at the end of the string, add a newline
+			if spacePos < strLength then
+				result = result .. "\n"
+			end
+			-- Move to the next line starting after the last space
+			lineStart = spacePos + 1
+		end
+	end
+
+	return result
+end
+function M.destroyDemoCards()
+	-- Iterate over all stored instance IDs and delete the associated game objects
+	for go_id, _ in pairs(M.cards) do
+		if go.exists(go_id) then
+			go.delete(go_id)  -- Delete the game object
+			print("Deleted game object with instance ID (hash):", go_id)  -- Print the hash
+		end
+	end
+
+	-- -- Clear the tracking tables
+	-- cardDataModule.cards = {}
+	-- cardDataModule.hand = {}  -- Assuming you also want to clear the hand
+end
+function M.drawDemoCards()
+	local i = M.getHandSize()
+	local card = M.remove_card_from_deck()  -- Remove the top card from the deck
+	M.add_card_to_hand(card)
+	local cardNumber = #M.hand
+
+	-- probably should use the card hand from text.gui
+
+	local cardGO = factory.create("/spawncards#playerCardFactory", vmath.vector3(115 + (i * 245), 790, 0), nil, {isDraggable = true}, 1)
+
+	M.cards[tostring(cardGO)] = card
+	print("Instance ID (hash) of created game object:", cardGO)  -- Print the hash
+
+	print("Creating card with name:", card.name)
+	msg.post(cardGO, "set_name", {name = card.name})
+	msg.post(cardGO, "set_cost", {cost = card.cost})
+	msg.post(cardGO, "set_power", {power = card.power})
+
+	formattedDescription = formatNewlines(card.description, 27)
+
+	msg.post(cardGO, "set_description", {description = formattedDescription})
+end
+
 function M.add_card_to_hand(card)
 	table.insert(M.hand, card)
 end

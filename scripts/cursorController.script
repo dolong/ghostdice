@@ -10,14 +10,18 @@ local zonesModule = require "modules.zones"
 local playersModule = require "modules.player"
 local turnActionsModule = require "modules.turnActions"
 local zoomedCardID = nil
+local render_helper = require "modules.render_helper"
+
+local camera = require "orthographic.camera"
+local cursor = require "in.cursor"
+
 
 function init(self)
 	--if the cursor doesn't already have input focus, assign it input focus, and forward any input messages to be parsed by the on_message function
-	if not go.get("#cursor", "acquire_input_focus") then
-		self.forward_input = true
-		msg.post(".", "acquire_input_focus")
-	end
 
+	local CAMERA_ID = hash("/camera")
+	msg.post(".", "acquire_input_focus")
+	
 	--listen for cursor drag input
 	cursor.listen(msg.url("#cursor"), cursor.DRAG_START, function (message_id, message)
 		if message.group == hash("playerCard") or message.group == hash("opponentCard") then
@@ -42,15 +46,46 @@ end
 
 --listen for user input
 function on_input(self, action_id, action)
-	if self.forward_input then
-		msg.post("#cursor", "input", { action_id = action_id, action = action })
+	local screen = vmath.vector3(action.x, action.y, 0)
+	local world = camera.screen_to_world(CAMERA_ID, screen)
+	action.x = world.x
+	action.y = world.y
+	msg.post("#cursor", "input", { action_id = action_id, action = action })
+
+	-- handle camera drag - but only if cursor isn't over something
+	if not self.over then
+		if action.pressed then
+			self.pressed_position = vmath.vector3(screen)
+			self.camera_position = go.get_position(CAMERA_ID)
+			camera.unfollow(CAMERA_ID)
+		elseif action.released then
+			self.pressed_position = nil
+		elseif self.pressed_position then
+			local diff = screen - self.pressed_position
+			go.set_position(self.camera_position - diff, CAMERA_ID)
+		end
 	end
 end
 
 --listen for type of user input
 function on_message(self, message_id, message, sender)
-	local draginit
-	local dragingcard = false
+
+-- 	if message_id == cursor.OVER or message_id == cursor.OUT or message_id == cursor.DRAG_START or message_id == cursor.DRAG_END or message_id == cursor.DRAG then
+-- 		local game_position = render_helper.action_to_position({ screen_x = message.x, screen_y = message.y })
+-- 		message.x = game_position.x
+-- 		message.y = game_position.y
+-- 
+-- 		-- Here, you can get the registered object details based on its id
+-- 		local object_data = render_helper.get_object(message.id)
+-- 		if object_data then
+-- 			-- Translate based on the registered object's details
+-- 			message.x = game_position.x + object_data.position.x
+-- 			message.y = game_position.y + object_data.position.y
+-- 		end
+-- 		
+-- 	end
+
+	
 	if message_id == cursor.OVER then
 		--print("Cursor over", transformed_pos.group)
 		print("Cursor over", message.id, message.group, message.x, message.y)

@@ -67,7 +67,7 @@ function M.drawCard()
 	-- probably should use the card hand from text.gui
 	
 	local cardGO = factory.create("/spawner#playerCardFactory", vmath.vector3(180 + (i * 76), 190, 0), nil, {isDraggable = true}, .5)
-	msg.post(cardGO , "delete_description")
+		msg.post(cardGO , "delete_description")
 	
 	cardDataModule.cards[tostring(cardGO)] = card
 	print("Creating card with name:", card.name)

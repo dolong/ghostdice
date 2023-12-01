@@ -1,0 +1,18 @@
+function on_message(self, message_id, message, sender)
+	if message_id == hash("set_image") then
+		if message.image and message.square then
+			-- Construct the ID of the sprite component based on the square
+			local sprite_id = "#" .. message.square
+			print("flipping ", sprite_id)
+			-- Play the specified animation
+			sprite.play_flipbook(sprite_id, hash(message.image))
+		end
+	elseif message_id == hash("reset") then
+		-- List of all sprite IDs
+		local sprite_ids = {"00", "01", "02", "10", "11", "12", "20", "21", "22"}
+		for _, id in ipairs(sprite_ids) do
+			local sprite_id = "#" .. id
+			sprite.play_flipbook(sprite_id, hash("dice_blank"))
+		end
+	end
+end

@@ -38,7 +38,7 @@ end
 function M.callDrawCardsExternal()
 	local body = json.encode({cards = 12}) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://eof12vdrp825kui.m.pipedream.net/", "POST", handleResponse, headers, body)
+	http.request("https://eohjayfp35ysioq.m.pipedream.net/", "POST", handleResponse, headers, body)
 	-- go to handleResponse(self, id, response) next
 end
 

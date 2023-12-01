@@ -1,0 +1,25 @@
+-- game_object_manager.script
+function on_message(self, message_id, message, sender)
+	if message_id == hash("hide_runes") then
+		if go.exists("/runes#runes") then
+			-- Get the current position
+			local pos = go.get_position("/runes#runes")
+			-- Set the z position to a negative value to hide it
+			pos.z = -1 -- You can change this value to ensure it's outside of the camera view
+			go.set_position(pos, "/runes#runes")
+		else
+			print("runes.go does not exist or cannot be found.")
+		end
+	end
+
+	if message_id == hash("show_runes") then
+		if go.exists("/runes#runes") then
+			-- Get the current position
+			local pos = go.get_position("/runes#runes")
+			pos.z = 0.2 -- You can change this value to ensure it's outside of the camera view
+			go.set_position(pos, "/runes#runes")
+		else
+			print("runes.go does not exist or cannot be found.")
+		end
+	end
+end

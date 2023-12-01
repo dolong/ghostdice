@@ -1,0 +1,40 @@
+-- game_object_manager.script
+
+function set_sprite_z_index(sprite_id, new_z_index)
+	-- Get the current position (even if it returns 0,0,0)
+	local current_position = go.get_position(sprite_id)
+
+	-- Set the z index to the new value
+	current_position.z = new_z_index
+
+	-- Apply the new position back to the sprite
+	go.set_position(current_position, sprite_id)
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("hide_loading") then
+		if go.exists("/players#golemthink") then
+			sprite.play_flipbook("/players#golemthink", hash("blankgolem"))
+		else
+			print("golemthink does not exist or cannot be found.")
+		end
+	end
+
+	if message_id == hash("show_black") then
+		if go.exists("/players#golemthink") then
+			--go.set_position(pos, "/players#golemthink")
+			sprite.play_flipbook("/players#golemthink", hash("golemsleep"))
+		else
+			print("golemthink does not exist or cannot be found.")
+		end
+	end
+	
+	if message_id == hash("show_loading") then
+		if go.exists("/players#golemthink") then
+			--go.set_position(pos, "/players#golemthink")
+			sprite.play_flipbook("/players#golemthink", hash("golemthink"))
+		else
+			print("golemthink does not exist or cannot be found.")
+		end
+	end
+end

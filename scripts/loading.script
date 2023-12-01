@@ -1,0 +1,24 @@
+-- game_object_manager.script
+function on_message(self, message_id, message, sender)
+	if message_id == hash("hide_loading") then
+		if go.exists("/loading") then
+			local pos = go.get_position("/players#golemthink")
+			-- Set the z position to a negative value to hide it
+			pos.z = -1 -- You can change this value to ensure it's outside of the camera view
+			go.set_position(pos, "/players#golemthink")
+		else
+			print("loading.go does not exist or cannot be found.")
+		end
+	end
+
+	if message_id == hash("show_loading") then
+		if go.exists("/players#golemthink") then
+			local pos = go.get_position("/players#golemthink")
+			-- Set the z position to a negative value to hide it
+			pos.z = 2 -- You can change this value to ensure it's outside of the camera view
+			go.set_position(pos, "/players#golemthink")
+		else
+			print("loading.go does not exist or cannot be found.")
+		end
+	end
+end
