@@ -3,7 +3,7 @@ function on_message(self, message_id, message, sender)
 		if message.image and message.square then
 			-- Construct the ID of the sprite component based on the square
 			local sprite_id = "#" .. message.square
-			print("flipping ", sprite_id)
+			print("Setting image in slot: ", sprite_id, " to ", message.image)
 			-- Play the specified animation
 			sprite.play_flipbook(sprite_id, hash(message.image))
 		end

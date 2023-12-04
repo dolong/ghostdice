@@ -6,9 +6,41 @@ M.player_1_lane3 = {}
 M.player_2_lane1 = {}
 M.player_2_lane2 = {}
 M.player_2_lane3 = {}
+M.turnCount = 1
 M.opponentPlayedCards = {} 
 M.lastDiceRoll = 0 
 M.dicePlaced = true 
+
+function M.calculate_lane_score(playerNumber, lane)
+	local table_name = "player_" .. playerNumber .. "_lane" .. lane
+	local lane_array = M[table_name]
+
+	if not lane_array then
+		print("Invalid lane: " .. table_name)
+		return 0
+	end
+
+	-- Count occurrences of each dice number
+	local counts = {}
+	for _, diceNumber in ipairs(lane_array) do
+		counts[diceNumber] = (counts[diceNumber] or 0) + 1
+	end
+
+	-- Calculate score
+	local score = 0
+	for diceNumber, count in pairs(counts) do
+		if count > 1 then
+			-- For duplicates: Add the sum of the number multiplied by the count
+			score = score + (diceNumber * count * count)
+		else
+			-- For non-duplicates: Just add the number
+			score = score + diceNumber
+		end
+	end
+
+	return score
+end
+
 
 function M.add_dice_to_lane(playerNumber, diceNumber, lane)
 	-- Check if a dice can be placed
@@ -22,8 +54,6 @@ function M.add_dice_to_lane(playerNumber, diceNumber, lane)
 			-- Insert the dice number into the appropriate table
 			table.insert(M[table_name], diceNumber)
 			print ("Placed ", diceNumber, " to lane ", lane)
-			-- call setVisualHere	
-			M.setVisual(playerNumber, lane)		
 		else
 			print("Invalid table name: " .. table_name)
 		end
@@ -32,38 +62,86 @@ function M.add_dice_to_lane(playerNumber, diceNumber, lane)
 	end
 end
 
+function M.is_lane_full(playerNumber, lane)
+	-- Construct the table name dynamically
+	local table_name = "player_" .. playerNumber .. "_lane" .. lane
 
+	-- Check if the lane exists and its length
+	if M[table_name] and #M[table_name] < 3 then
+		return false -- Lane is not full
+	else
+		return true -- Lane is full or does not exist
+	end
+end
+
+function M.are_all_lanes_full(playerNumber)
+	for lane = 1, 3 do
+		if not M.is_lane_full(playerNumber, lane) then
+			return false -- One of the lanes is not full
+		end
+	end
+	return true -- All lanes are full
+end
+
+
+function M.nextTurn()
+	M.turnCount = M.turnCount + 1
+end
+
+function M.getTurn()
+	return M.turnCount
+end
+
+function M.getCurrentPlayer()
+	-- If turnCount is odd, it's player 1's turn, if even, it's player 2's turn
+	-- This assumes player 1 starts on turn 1 (which is odd)
+	if M.turnCount % 2 == 1 then
+		return 1 -- Player 1's turn
+	else
+		return 2 -- Player 2's turn
+	end
+end
+function M.update_score_labels(playerNumber)
+	for lane = 1, 3 do
+		local score = M.calculate_lane_score(playerNumber, lane)
+-- 		local label_url = "/locations#player_" .. playerNumber .. "_score_" .. lane
+-- 		
+-- 		gui.set_text(gui.get_node(label_url), tostring(score))
+-- 
+
+msg.post("/locations#locations", "update_score_label", {playerNumber = playerNumber, lane = lane, score = score})
+
+	end
+end
 function M.setVisual(playerNumber, lane)
 	-- Define the base square IDs for each player's lanes
 	local baseSquareId = {
 		[1] = {lane1 = "00", lane2 = "01", lane3 = "02"},
-		[2] = {lane1 = "20", lane2 = "21", lane3 = "22"}
+		[2] = {lane1 = "00", lane2 = "01", lane3 = "02"}
 	}
-
-	-- Construct the table name dynamically
 	local tableName = "player_" .. playerNumber .. "_lane" .. lane
 
-	-- Check if the lane exists and has dice
-	if M[tableName] then
-		-- Loop through the dice in the lane (up to 3 dice)
-		for i, diceNumber in ipairs(M[tableName]) do
-			-- Calculate the square ID based on the base ID and index
-			local baseId = baseSquareId[playerNumber]["lane" .. lane]
-			if baseId then
-				local row = tonumber(baseId:sub(1, 1)) + (i - 1)
-				local column = baseId:sub(2, 2)
-				local adjustedSquareId = string.format("%01d%s", row, column)
+	for i = 1, 3 do
+		local baseId = baseSquareId[playerNumber]["lane" .. lane]
+		if baseId then
+			local row = tonumber(baseId:sub(1, 1)) + (i - 1)
+			local column = baseId:sub(2, 2)
+			local adjustedSquareId = string.format("%01d%s", row, column)
+			local imageName
 
-				-- Construct the image name for the dice face
-				local imageName = "dice_faces_" .. diceNumber
-
-				-- Send a message to the grid script to update the visual
-				msg.post("/squares#grid", "set_image", {image = imageName, square = adjustedSquareId})
+			-- Check if there is a dice at this position
+			if i <= #M[tableName] then
+				imageName = "dice_faces_" .. M[tableName][i]
+			else
+				imageName = "dice_blank" -- Set to blank if no dice
 			end
+
+			-- Update the visual
+			local grid_id = (playerNumber == 1) and "/squares#grid" or "/squares1#grid"
+			msg.post(grid_id, "set_image", {image = imageName, square = adjustedSquareId})			
 		end
-	else
-		print("Invalid lane: " .. tableName)
 	end
+	M.update_score_labels(playerNumber)
 end
 
 function M.setDice(diceNumber)
@@ -71,7 +149,7 @@ function M.setDice(diceNumber)
 	M.dicePlaced = false
 end
 
-function M.getDiceRoll(diceNumber)
+function M.getDiceRoll()
 	return M.lastDiceRoll
 end
 
@@ -82,8 +160,15 @@ function M.place_dice_to_lane(playerNumber, diceNumber, lane)
 	-- Step 1: Add dice to the player's lane
 	M.add_dice_to_lane(playerNumber, diceNumber, lane)
 
+	M.setVisual(playerNumber, lane)	
+	
+
+	M.dicePlaced = true
+end
+
+function M.check_duplicates_and_destroy(playerNumber, diceNumber, lane)
 	-- Step 2: Check for duplicate dice number in the opponent's same lane
-	local duplicate_found = check_duplicate_in_opponent_player(playerNumber, diceNumber, lane)
+	local duplicate_found = M.check_duplicate_in_opponent_player(playerNumber, diceNumber, lane)
 
 	-- Step 3: If duplicate is found, remove the dice number from the opponent's lane
 	if duplicate_found then
@@ -94,11 +179,10 @@ function M.place_dice_to_lane(playerNumber, diceNumber, lane)
 		M.remove_dicenumber_from_lane(opponentNumber, diceNumber, lane)
 	end
 
-	M.dicePlaced = true
 end
 
 --Checks to see if there exist another dice of the same number in the opponents same lane.
-function check_duplicate_in_opponent_player(playerNumber, diceNumber, lane)
+function M.check_duplicate_in_opponent_player(playerNumber, diceNumber, lane)
 	-- Determine the opponent's player number
 	local opponentNumber = (playerNumber == 1) and 2 or 1
 
@@ -119,6 +203,28 @@ function check_duplicate_in_opponent_player(playerNumber, diceNumber, lane)
 	return duplicate_found
 end
 
+function M.array_to_string(array)
+	local str = "["
+	for i, value in ipairs(array) do
+		str = str .. value
+		if i < #array then
+			str = str .. ","
+		end
+	end
+	str = str .. "]"
+	return str
+end
+
+function M.get_player_lanes_as_string(playerNumber)
+	local lanes = M.get_player_lanes(playerNumber)
+	local laneStrings = {}
+
+	for _, lane in ipairs(lanes) do
+		table.insert(laneStrings, M.array_to_string(lane))
+	end
+
+	return "{" .. table.concat(laneStrings, ", ") .. "}"
+end
 
 function M.get_player_lanes(playerNumber)
 	-- Initialize an empty return array
@@ -167,22 +273,41 @@ function M.get_status()
 	return status
 end
 
+function M.get_status_as_string()
+	-- Get the lane status for both players and convert them to strings
+	local player1_lanes = M.get_player_lanes(1)
+	local player1_lanes_str = "{" .. table.concat(M.map_to_string_array(player1_lanes, M.array_to_string), ", ") .. "}"
+
+	local player2_lanes = M.get_player_lanes(2)
+	local player2_lanes_str = "{" .. table.concat(M.map_to_string_array(player2_lanes, M.array_to_string), ", ") .. "}"
+
+	-- Combine both players' lane statuses into one string
+	return "{player_1: " .. player1_lanes_str .. ", player_2: " .. player2_lanes_str .. "}"
+end
+
+-- Helper function to apply a function (func) to each element of an array (array) and return a new array
+function M.map_to_string_array(array, func)
+	local new_array = {}
+	for _, value in ipairs(array) do
+		table.insert(new_array, func(value))
+	end
+	return new_array
+end
 function M.remove_dicenumber_from_lane(playerNumber, diceNumber, lane)
-	-- Construct the table name dynamically
 	local table_name = "player_" .. playerNumber .. "_lane" .. lane
 
-	-- Check if the table exists
+	-- Check if the lane table exists
 	if M[table_name] then
-		-- Loop through the dice numbers in the lane
+		-- Loop backward through the lane
 		for i = #M[table_name], 1, -1 do
 			if M[table_name][i] == diceNumber then
-				-- Remove the dice number if it matches
+				-- Remove the dice number
 				table.remove(M[table_name], i)
-				-- Assuming you want to remove all instances of this dice number
-				-- If you only want to remove the first instance, break the loop here
-				-- break
+				-- Continue the loop to find more instances of the dice number
 			end
 		end
+		-- Update the visual for the entire lane
+		M.setVisual(playerNumber, lane)
 	else
 		print("Invalid lane: " .. table_name)
 	end

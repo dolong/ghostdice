@@ -1,0 +1,19 @@
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("update_score_label") then
+		local playerNumber = message.playerNumber
+		local lane = message.lane
+		local score = message.score
+
+		-- Construct the label's node id
+		local label_id = "player_" .. playerNumber .. "_score_" .. lane
+
+		-- Check if the node exists
+		if gui.get_node(label_id) then
+			-- Update the label's text with the new score
+			gui.set_text(gui.get_node(label_id), tostring(score))
+		else
+			print("Label node not found: " .. label_id)
+		end
+	end
+end

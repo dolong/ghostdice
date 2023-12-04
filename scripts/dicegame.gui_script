@@ -7,10 +7,12 @@ local timer_component = require("druid.extended.timer")
 local camera = require "orthographic.camera"
 local cardDataModule = require "modules.cardData"
 local diceModule = require "modules.dice"
+local slider = require("druid.extended.slider")
 
-local sprite_style = require("modules.hover_button")
+local hover_shadow_style = require("modules.hover_button")
 
 player = "x"
+
 
 local function get_query_parameters()
 	if html5 then
@@ -67,27 +69,6 @@ local function on_button_callback2(self)
 end
 
 
-local function play_as_x(self)
-	hide_golem_thinking()
-	msg.post("/squares#tictactoe", "reset")
-	player = "x"
-
-	local golem = gui.get_node("golemTalk")
-	gui.set_text(golem, ".. About time.. You may go..   First..")
-	self.battle_log:set_text("")
-end
-
-local function play_as_o(self)
-	hide_golem_thinking()
-	msg.post("/squares#tictactoe", "reset")
-	player = "o"
-	local golem = gui.get_node("golemTalk")
-	gui.set_text(golem, ".. This time..   I go first.. \n.. making.. the first move..")
-	self.battle_log:set_text("")
-	golemPlay(self)
-	print("player is o")
-end
-
 local function train(self)
 	show_golem_black()
 	analysis(self)
@@ -130,17 +111,69 @@ local function refresh(self)
 	self.battle_log:set_text("")
 end
 
-local function roll_dice(self)
+local function roll_dice_and_play_as_ai(self)
 	print("Roll Dice Button was clicked!")
+
+end
+
+
+local function log_turn(self, lane_choice)
+
+	print("logging turn")
+	local currentText = self.battle_log:get_text()
+	-- Add a new line if there isn't anything yet
+	if string.len(currentText) > 1 then
+		newText = currentText .. ",\n" 
+		if (diceModule.dicePlaced) then
+			parse_logs_for_chatgpt(self, "user_played", lane_choice)
+		else
+			parse_logs_for_chatgpt(self, "user_rolled")			
+		end
+	else 
+		-- Init the logs
+		parse_logs_for_chatgpt(self, "user_rolled")
+	end
+
+	--self.battle_log:set_text(newText)
+end
+
+function parse_logs_for_chatgpt(self, action, lane_choice)
+	currentPlayer = diceModule.getCurrentPlayer()
+	log = self.battle_log:get_text()
+	diceNumber = diceModule.getDiceRoll()
+	playerNumber = diceModule.getCurrentPlayer()
 	
-	msg.post("/squares#tictactoe", "reset")
-	self.battle_log:set_text("")
+	if (action == "user_rolled") then
+		print ("logging roll")
+		log = log .. "Turn " .. diceModule.getTurn() .. ",\n" 
+		log = log .. "It is now player_" .. currentPlayer .. "s" .. " turn" .. "\n"
+		log = log .. "Roll Phase: player_" .. currentPlayer .. " rolls" .. " a " .. diceNumber .. "\n"
+	elseif ( action == "user_played") then
+		log = log .. "Lane Choice Phase: {lane_choice: {'".. lane_choice .. "'}." .. "\n" 
+		log = log .. "Game Update: Your lanes are now " .. diceModule.get_player_lanes_as_string(playerNumber) .. "\n" 
+		if diceModule.check_duplicate_in_opponent_player(playerNumber, diceNumber, lane_choice) then
+			log = log .. "Discard Phase: I see duplicates in opponent lane_" .. lane_choice .. ", removing\n" 
+			diceModule.check_duplicates_and_destroy(playerNumber, diceNumber, lane_choice)
+		else
+			log = log .. "Discard Phase: I don’t see any matches in opponent lane_" .. lane_choice .. "\n" 
+		end
+				
+		log = log .. "Game Update: The lanes are now " .. diceModule.get_status_as_string() .. "\n" 
+		log = log .. "End Phase: player_1s turn is now over. It is now player_2s turn" .. "\n" 
+		diceModule.nextTurn()
+		enable_next_button(self)
+	end	
+
+	self.battle_log:set_text(log)
+	print("set log to ".. log)
 end
 
 local function register_druid_extended_components(self)
 	druid.register("input", input)
 	druid.register("progress", progress)
 	druid.register("timer", timer_component)
+	-- Register the extended slider component
+	druid.register("slider", slider_extension)
 end
 
 
@@ -159,41 +192,6 @@ local function getCoordinates(squareId)
 	return mapping[squareId] or "0,0"  -- Default to "0,0" if squareId is not in the mapping
 end
 
-local function squareclick(self, squareId)
-	local currentText = self.battle_log:get_text()
-
-	local coords = getCoordinates(squareId)
-	local newText = ""
-
-	if currentText == "Battle Log" then
-		hide_golem_thinking()
-		print("Existing text")
-		refresh(self)
-	else
-		
-		if string.len(currentText) > 1 then
-			newText = currentText .. ",\n" 
-		end
-
-		newText = newText .. '{ "role": "user", "content": "[' .. coords .. ']" }'
-
-		self.battle_log:set_text(newText)
-
-		local image
-
-		print("player is ", player)
-		if player == "x" then
-			image = "x"
-		else
-			image = "o"
-		end
-		
-		msg.post("/squares#tictactoe", "set_image", {image = image, square = squareId})
-		golemPlay(self)
-	end
-end
-
-
 
 function init(self)
 
@@ -210,47 +208,43 @@ function init(self)
 	end
 	self.druid = druid.new(self)
 	register_druid_extended_components(self)
-	self.button = self.druid:new_button("generateCard/button", play_as_x)
-	self.button = self.druid:new_button("playAsO/button", play_as_o)
-	self.button = self.druid:new_button("refresh/button", refresh)	
-	self.button = self.druid:new_button("roll_dice/button", roll_dice)	
-	self.button = self.druid:new_button("train/button", train)	
-	self.button = self.druid:new_button("try", show_golem_thinking)	
+	self.refreshButton = self.druid:new_button("refresh/button", refresh)	
+	self.rollDiceButton = self.druid:new_button("roll_dice/button", next)	
+	self.button = self.druid:new_button("golem_roll/button", ask_golem_for_move)	
+	self.button = self.druid:new_button("try", show_golem_thinking)
+
+	
 	self.battle_log = self.druid:new_input("inputbox", "cardEffect")
 	
 	-- Bind the play_lane function with the specific node id for each button
 	local custom_style1 = self.druid:new_button("select_player_1_lane1/button", function() play_lane(self, "select_player_1_lane1") end)
-	custom_style1:set_style(sprite_style)
+	custom_style1:set_style(hover_shadow_style)
 
 	local custom_style2 = self.druid:new_button("select_player_1_lane2/button", function() play_lane(self, "select_player_1_lane2") end)
-	custom_style2:set_style(sprite_style)
+	custom_style2:set_style(hover_shadow_style)
 
 	local custom_style3 = self.druid:new_button("select_player_1_lane3/button", function() play_lane(self, "select_player_1_lane3") end)
-	custom_style3:set_style(sprite_style)
+	custom_style3:set_style(hover_shadow_style)
 	
 	
-	local squares = {"00", "01", "02", "10", "11", "12", "20", "21", "22"}
-	for _, squareId in ipairs(squares) do
-		self.button = self.druid:new_button("box" .. squareId, function() squareclick(self, squareId) end)
-	end
 	
 	-- Subscribe to the on_input_select event
 	--self.battle_log.on_input_select:subscribe(on_input_select, self)
 end
 
-
+-- using click
 function play_lane(self, node_id)
 	-- Extract playerNumber and lane from the node_id
 	-- Assuming node_id is in the format "select_player_X_laneY"
 	local pattern = "select_player_(%d+)_lane(%d+)"
-	local playerNumber, lane = node_id:match(pattern)
+	local playerNumber, lane_choice = node_id:match(pattern)
 
 	-- Convert extracted values to numbers
 	playerNumber = tonumber(playerNumber)
-	lane = tonumber(lane)
+	lane_choice = tonumber(lane_choice)
 
 	-- Fallback in case of invalid or missing data
-	if not playerNumber or not lane then
+	if not playerNumber or not lane_choice then
 		print("Invalid node id or pattern mismatch: " .. node_id)
 		return
 	end
@@ -259,8 +253,34 @@ function play_lane(self, node_id)
 	local diceNumber = diceModule.getDiceRoll()
 
 	-- Place the dice on the lane
-	diceModule.place_dice_to_lane(playerNumber, diceNumber, lane)
+	if (not diceModule.is_lane_full(playerNumber, lane_choice) and not diceModule.dicePlaced) then
+		diceModule.place_dice_to_lane(playerNumber, diceNumber, lane_choice)
+		if (diceModule.are_all_lanes_full(diceModule.getCurrentPlayer())) then
+			local golem = gui.get_node("golemTalk")
+			gui.set_text(golem, "That was the last move. Good Game!")			
+		end
+		play_dice_sound(self)
+		print(lane_choice)
+		log_turn(self, lane_choice)
+	end
+end
+
+-- using AI
+function ai_play_lane(self, lane_choice)
+
+	playerNumber = diceModule.getCurrentPlayer()
+	-- Get the dice number
+	local diceNumber = diceModule.getDiceRoll()
+	
+	-- Place the dice on the lane
+	diceModule.place_dice_to_lane(playerNumber, diceNumber, lane_choice)
 	play_dice_sound(self)
+
+	log_turn(self, lane_choice)
+	if (diceModule.are_all_lanes_full(diceModule.getCurrentPlayer())) then
+		local golem = gui.get_node("golemTalk")
+		gui.set_text(golem, "That was the last move. Good Game!")			
+	end
 end
 
 function play_dice_sound(self)
@@ -272,12 +292,93 @@ function roll_dice_sound(self)
 	-- Assuming you have a sound component called 'roll_dice_sound'
 	msg.post("/sounds#roll_dice_sound", "play_sound", {gain = 1.0})
 end
-function randomize_dice(self)
+
+function randomize_dice(self, ai_play)
 	local body = json.encode({dice = 1}) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://eo66i7canq8cf3g.m.pipedream.net", "POST", diceHandleResponse, headers, body)
+	if (ai_play) then
+		http.request("https://eo66i7canq8cf3g.m.pipedream.net", "POST", diceAIHandleResponse, headers, body)
+	else 
+		http.request("https://eo66i7canq8cf3g.m.pipedream.net", "POST", diceHandleResponse, headers, body)
+	end
 end
 
+function replace_newlines_with_literal(str)
+	-- Replace newline characters with the literal string "\n"
+	return string.gsub(str, "\n", "\\n")
+end
+
+function ask_golem_for_move(self)
+	full_log = self.battle_log:get_text()
+	local processed_log = replace_newlines_with_literal(full_log)
+	body = '[{"role": "system", "content": "' .. processed_log .. '"}]'
+	
+	local body = json.encode(body) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request("https://eoshtyj79v1s8sk.m.pipedream.net", "POST", golemHandleResponse, headers, body)
+
+	
+end
+
+function golemHandleResponse(self, id, response)
+	if response.status == 200 then
+		roll_dice_sound(self)
+		local data = json.decode(response.response)
+		move = json.decode(data.move)
+		print(move)
+		ai_play_lane(self, move)
+		
+		local golem = gui.get_node("golemTalk")
+		
+		gui.set_text(golem, gui.get_text(golem) .. "\nI'll move it here")
+		
+	else
+		print("Error: ", response.status)
+	end
+end
+
+
+function diceAIHandleResponse(self, id, response)
+	if response.status == 200 then
+		roll_dice_sound(self)
+		local data = json.decode(response.response)
+
+		local rolls_array = json.decode(data.rolls)
+		if #rolls_array > 0 then
+			local roll_number = rolls_array[1]
+			print("diceRoll:", roll_number)
+
+			-- Call the corresponding function based on the roll number
+			if roll_number == 1 then
+				dice_roll_1(self)
+			elseif roll_number == 2 then
+				dice_roll_2(self)
+			elseif roll_number == 3 then
+				dice_roll_3(self)
+			elseif roll_number == 4 then
+				dice_roll_4(self)
+			elseif roll_number == 5 then
+				dice_roll_5(self)
+			elseif roll_number == 6 then
+				dice_roll_6(self)
+			else
+				print("Roll number not handled:", roll_number)
+			end
+			diceModule.setDice(roll_number)
+			-- log the dice roll into the battle log
+			local golem = gui.get_node("golemTalk")
+			gui.set_text(golem, "I rolled a " .. diceModule.getDiceRoll())
+
+			log_turn(self)
+			ask_golem_for_move(self)
+
+		else
+			print("No dice roll data received.")
+		end
+	else
+		print("Error: ", response.status)
+	end
+end
 
 function diceHandleResponse(self, id, response)
 	if response.status == 200 then
@@ -288,7 +389,6 @@ function diceHandleResponse(self, id, response)
 		if #rolls_array > 0 then
 			local roll_number = rolls_array[1]
 			print("diceRoll:", roll_number)
-
 			
 			-- Call the corresponding function based on the roll number
 			if roll_number == 1 then
@@ -307,6 +407,11 @@ function diceHandleResponse(self, id, response)
 				print("Roll number not handled:", roll_number)
 			end
 			diceModule.setDice(roll_number)
+			-- log the dice roll into the battle log
+			local golem = gui.get_node("golemTalk")
+			gui.set_text(golem, "I rolled a " .. diceModule.getDiceRoll())
+						
+			log_turn(self)
 		else
 			print("No dice roll data received.")
 		end
@@ -315,7 +420,7 @@ function diceHandleResponse(self, id, response)
 	end
 end
 
--- Example functions for dice rolls
+
 function dice_roll_1(self)
 	-- Logic for dice roll 1
 	print("Function for dice roll 1 called.")
@@ -325,7 +430,7 @@ function dice_roll_1(self)
 
 	-- Post the message
 	msg.post("/players#dice", "roll_dice", message_data)
-	
+
 end
 
 function dice_roll_2(self)
@@ -376,10 +481,50 @@ function show_golem_black()
 	msg.post("/players#golem", "show_black")
 end
 
-function roll_dice()	
+function roll_dice(self)	
 	print('randomizing')
-	randomize_dice()
+	
+	randomize_dice(self, false)
 	--msg.post("/players#golem", "roll_dice")
+end
+
+
+
+function roll_dice_and_play_as_ai(self)
+	print('randomizing as ai')
+	randomize_dice(self, true)
+end
+
+function next(self)
+	
+	local golem = gui.get_node("golemTalk")
+	gui.set_text(golem, "")
+	
+	if (diceModule.getCurrentPlayer() == 1) then
+		local message_data = { char = "chara_portraits_batch1_monke" }
+		msg.post("/players#player_portraits", "set_potrait", message_data)
+		disable_next_button(self)
+		roll_dice(self)
+	else		
+		local message_data = { char = "chara_portraits_batch1_goblin" }
+		print ("goblin")
+		msg.post("/players#player_portraits", "set_potrait", message_data)
+		disable_next_button(self)	
+		roll_dice_and_play_as_ai(self)		
+	end
+end
+function disable_next_button(self)
+	-- Disable the button
+	if self.rollDiceButton then
+		self.rollDiceButton:set_enabled(false)
+	end
+end
+
+function enable_next_button(self)
+	-- Enable the button
+	if self.rollDiceButton then
+		self.rollDiceButton:set_enabled(true)
+	end
 end
 
 function hide_golem_thinking()	
@@ -417,126 +562,6 @@ function on_message(self, message_id, message, sender)
 		-- And then disable the login collection
 		msg.post(".", "disable")
 	end
+		-- other message handling...
 end
 
-
-function handleResponse(self, id, response)
-
-	if response.status == 200 then
-		local data = json.decode(response.response)
-		-- You have an array 
-		print("Move:", data.move)
-
-		handleMoveResponse(self, data.move)
-			-- Now 'move' is a table where move[1] is the first value and move[2] is the second value
-			-- You can use these values as needed		
-	else
-		print("Error: ", response.status)
-	end
-end
-
-
-function splitString(str, delimiter)
-	local result = {}
-	for match in (str..delimiter):gmatch("(.-)"..delimiter) do
-		table.insert(result, match)
-	end
-	return result
-end
-
-
-function handleMoveResponse(self, moveString)
-	local cleanedMoveString = string.lower(moveString:match("%[(.-)%]"))
-	print (cleanedMoveString)
-	local firstSixChars = string.sub(cleanedMoveString, 1, 6)
-	-- Check for win conditions first
-	if firstSixChars == "x wins" then
-		print("Winner: x")
-		golem_announce_winner(self,"x", false)
-		return  -- Return immediately after handling the win condition
-	elseif firstSixChars == "o wins" then
-		print("Winner: o")
-		golem_announce_winner(self,"o", false)
-		return  -- Return immediately after handling the win condition
-	elseif firstSixChars == "draw" then
-		print("Draw")
-		golem_announce_winner(self,"o", true)
-		return  -- Return immediately after handling the win condition
-	end
-	-- Extract numbers from the string
-	local x, y = moveString:match("%[(%d+),(%d+)%]")
-	print (x, y)
-	if x and y then
-		-- Convert the extracted strings to numbers
-		x = tonumber(x)
-		y = tonumber(y)
-
-		-- Convert the x, y coordinates to a squareId (e.g., "00", "11", etc.)
-		local squareId = tostring(x) .. tostring(y)  -- Adjust indices to 0-based
-
-		golem_move(self,squareId)
-		-- Post a message to set the image	
-		golem_speak(self, ".." .. x .. "," .. y)
-	else
-		print("Invalid move data:", moveString)
-	end
-end
-
-
-function golem_move(self, squareId)
-	local currentText = self.battle_log:get_text()
-
-	local coords = getCoordinates(squareId)
-	local newText = ""
-
-	if string.len(currentText) > 1 then
-		newText = currentText .. ",\n" 
-	end
-
-	newText = newText .. '{ "role": "assistant", "content": "[' .. coords .. ']" }'
-
-	local image
-	if player == "o" then
-		image = "x"
-	else
-		image = "o"
-	end
-	
-	msg.post("/squares#tictactoe", "set_image", {image = image, square = squareId})
-
-	self.battle_log:set_text(newText)
-	--golemPlay(self)
-end
-
-function golemPlay(self)
-
-	local currentText = "[" .. self.battle_log:get_text() .. "]"
-	
-	local body = json.encode({currentMoves = currentText}) -- encoding data as a JSON string
-	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://eo82j4aqtbngiit.m.pipedream.net", "POST", handleResponse, headers, body)
-	-- go to handleResponse(self, id, response) next
-end
-function analysis(self)
-
-	local currentText = "[" .. self.battle_log:get_text() .. "]"
-
-	local body = json.encode({game = currentText}) -- encoding data as a JSON string
-	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://eoh6tszzly87t71.m.pipedream.net", "POST", trainGolemResponse, headers, body)
-	
-end
-function trainGolemResponse(self, id, response)
-
-	if response.status == 200 then
-		local data = json.decode(response.response)
-		-- You have an array 
-		print("Analysis:", data.Analysis)
-
-		-- Now 'move' is a table where move[1] is the first value and move[2] is the second value
-		-- You can use these values as needed			
-		golem_analysis(self, data.Analysis)
-	else
-		print("Error: ", response.status)
-	end
-end

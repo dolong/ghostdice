@@ -16,10 +16,10 @@ local is_dice_roll_playing = false -- Flag to check if dice_roll is playing
 local last_roll = "dice_1"
 
 function on_message(self, message_id, message, sender)
-	print("Rolling")
+	print (message_id)
 	if message_id == hash("roll_dice") then
-		if go.exists("/players#dice_roll") then
-			sprite.play_flipbook("/players#dice_roll", hash("dice_roll"))
+		if go.exists("/dice_board_table#dice_roll") then
+			sprite.play_flipbook("/dice_board_table#dice_roll", hash("dice_roll"))
 			self.dice_roll_timer = 0 -- Reset timer
 			is_dice_roll_playing = true -- Set flag to true when dice_roll starts
 			print("value: ", message.dice_roll_value)
@@ -28,6 +28,17 @@ function on_message(self, message_id, message, sender)
 			set_animation(self, dice_roll_value)
 		else
 			print("dice_roll does not exist or cannot be found.")
+		end
+	end
+
+	
+	if message_id == hash("set_potrait") then
+		print ("change portrait")
+		if go.exists("/dice_board_table#char_portrait") then
+			sprite.play_flipbook("/dice_board_table#char_portrait", hash(message.char))
+			print("set pic to ", message.char)
+		else
+			print("Portrait does not exist or cannot be found.")
 		end
 	end
 end
@@ -57,7 +68,7 @@ function update(self, dt)
 
 		-- Each frame is 1/5th of a second, so 4 frames last 4/5th of a second
 		if self.dice_roll_timer > (4 / 5) then
-			sprite.play_flipbook("/players#dice_roll", hash(last_roll)) -- Change sprite
+			sprite.play_flipbook("/dice_board_table#dice_roll", hash(last_roll)) -- Change sprite
 
 			is_dice_roll_playing = false -- Reset flag
 		end

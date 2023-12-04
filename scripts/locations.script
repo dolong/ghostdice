@@ -1,0 +1,23 @@
+-- locations.script
+
+function init(self)
+	-- Initialize your labels here if necessary
+end
+
+function on_message(self, message_id, message, sender)
+	if message_id == hash("update_score_label") then
+		local playerNumber = message.playerNumber
+		local lane = message.lane
+		local score = message.score
+
+		-- Construct the label's URL
+		local label_url = msg.url(nil, "/locations", "player_" .. playerNumber .. "_score_" .. lane)
+
+		-- Check if the label exists and then set the text
+		if label.get_text(label_url) then
+			label.set_text(label_url, tostring(score))
+		else
+			print("Label not found: " .. label_url.path)
+		end
+	end
+end

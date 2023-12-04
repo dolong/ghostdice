@@ -1,0 +1,12 @@
+function on_message(self, message_id, message, sender)
+
+	if message_id == hash("set_potrait") then
+		print ("change portrait")
+		if go.exists("/players#char_portrait") then
+			sprite.play_flipbook("/players#char_portrait", hash(message.char))
+			print("set pic to ", message.char)
+		else
+			print("Portrait does not exist or cannot be found.")
+		end
+	end
+end

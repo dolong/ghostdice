@@ -1,32 +1,4 @@
 
-local zonesModule = require "modules.zones"
-
--- property to determine if the card is draggable
-go.property("isDraggable", true)
-
--- Define the update function to get the current power for each zone
-local function update_zone_scores(self)
-	local zone
-	local url_suffix = "#playerZoneScore" -- common suffix for the labels in all zones
-	-- Determine which zone this script is associated with based on its game object's name
-	if go.get_id() == hash("landTile1") then
-		zone = 1
-	elseif go.get_id() == hash("landTile2") then
-		zone = 2
-	elseif go.get_id() == hash("landTile3") then
-		zone = 3
-	end
-
-	-- Construct the URL based on the determined zone
-	local url = msg.url("landTile" .. tostring(zone) .. url_suffix)
-
-	-- Get the current power of the zone
-	local power = zonesModule.get_power(zone)
-
-	-- Update the label's text
-	label.set_text(url, tostring(power))
-end
-
 function on_message(self, message_id, message, sender)
 	-- On receiving the update_score message, update the zone scores
 	if message_id == hash("update_score") then

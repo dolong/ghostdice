@@ -1,5 +1,5 @@
 [bootstrap]
-main_collection = /main/login.collectionc
+main_collection = /main/dicegame.collectionc
 render = /orthographic/render/orthographic.renderc
 
 [script]
@@ -28,9 +28,10 @@ dependencies#4 = https://github.com/britzl/defold-orthographic/archive/master.zi
 texture_profiles = /main/textureProfile.texture_profiles
 default_texture_min_filter = nearest
 default_texture_mag_filter = nearest
+max_characters = 28192
 
 [html5]
-splash_image = /assets/javascript-tic-tac-toe.png
+splash_image = /assets/LONG-IDEAS-11.png
 scale_mode = downscale_fit
 show_made_with_defold = 0
 show_fullscreen_button = 0
