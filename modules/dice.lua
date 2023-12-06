@@ -10,6 +10,7 @@ M.turnCount = 1
 M.opponentPlayedCards = {} 
 M.lastDiceRoll = 0 
 M.dicePlaced = true 
+M.aiRolled = false 
 
 function M.calculate_lane_score(playerNumber, lane)
 	local table_name = "player_" .. playerNumber .. "_lane" .. lane
@@ -86,6 +87,19 @@ end
 
 function M.nextTurn()
 	M.turnCount = M.turnCount + 1
+end
+
+function M.getTurn()
+	return M.turnCount
+end
+
+
+function M.aiRoll()
+	M.aiRolled = true
+end
+
+function M.personRoll()
+	M.aiRolled = false
 end
 
 function M.getTurn()
@@ -223,7 +237,7 @@ function M.get_player_lanes_as_string(playerNumber)
 		table.insert(laneStrings, M.array_to_string(lane))
 	end
 
-	return "{" .. table.concat(laneStrings, ", ") .. "}"
+	return "[" .. table.concat(laneStrings, ", ") .. "]"
 end
 
 function M.get_player_lanes(playerNumber)
@@ -276,13 +290,13 @@ end
 function M.get_status_as_string()
 	-- Get the lane status for both players and convert them to strings
 	local player1_lanes = M.get_player_lanes(1)
-	local player1_lanes_str = "{" .. table.concat(M.map_to_string_array(player1_lanes, M.array_to_string), ", ") .. "}"
+	local player1_lanes_str = "[" .. table.concat(M.map_to_string_array(player1_lanes, M.array_to_string), ", ") .. "]"
 
 	local player2_lanes = M.get_player_lanes(2)
-	local player2_lanes_str = "{" .. table.concat(M.map_to_string_array(player2_lanes, M.array_to_string), ", ") .. "}"
+	local player2_lanes_str = "[" .. table.concat(M.map_to_string_array(player2_lanes, M.array_to_string), ", ") .. "]"
 
 	-- Combine both players' lane statuses into one string
-	return "{player_1: " .. player1_lanes_str .. ", player_2: " .. player2_lanes_str .. "}"
+	return "{'player_1': " .. player1_lanes_str .. ", 'player_2': " .. player2_lanes_str .. "}"
 end
 
 -- Helper function to apply a function (func) to each element of an array (array) and return a new array

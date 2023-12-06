@@ -1106,7 +1106,7 @@ embedded_instances {
   "size_mode: SIZE_MODE_MANUAL\\n"
   "\"\n"
   "  position {\n"
-  "    x: -190.0\n"
+  "    x: -610.0\n"
   "    y: 189.0\n"
   "    z: 0.0\n"
   "  }\n"

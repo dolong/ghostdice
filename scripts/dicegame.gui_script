@@ -149,7 +149,7 @@ function parse_logs_for_chatgpt(self, action, lane_choice)
 		log = log .. "It is now player_" .. currentPlayer .. "s" .. " turn" .. "\n"
 		log = log .. "Roll Phase: player_" .. currentPlayer .. " rolls" .. " a " .. diceNumber .. "\n"
 	elseif ( action == "user_played") then
-		log = log .. "Lane Choice Phase: {lane_choice: {'".. lane_choice .. "'}." .. "\n" 
+		log = log .. "Lane Choice Phase: lane_choice: {'".. lane_choice .. "'}." .. "}\n" 
 		log = log .. "Game Update: Your lanes are now " .. diceModule.get_player_lanes_as_string(playerNumber) .. "\n" 
 		if diceModule.check_duplicate_in_opponent_player(playerNumber, diceNumber, lane_choice) then
 			log = log .. "Discard Phase: I see duplicates in opponent lane_" .. lane_choice .. ", removing\n" 
@@ -210,6 +210,7 @@ function init(self)
 	register_druid_extended_components(self)
 	self.refreshButton = self.druid:new_button("refresh/button", refresh)	
 	self.rollDiceButton = self.druid:new_button("roll_dice/button", next)	
+	self.rollDiceBox = self.druid:new_button("roll_dice/box", next)	
 	self.button = self.druid:new_button("golem_roll/button", ask_golem_for_move)	
 	self.button = self.druid:new_button("try", show_golem_thinking)
 
@@ -253,7 +254,7 @@ function play_lane(self, node_id)
 	local diceNumber = diceModule.getDiceRoll()
 
 	-- Place the dice on the lane
-	if (not diceModule.is_lane_full(playerNumber, lane_choice) and not diceModule.dicePlaced) then
+	if (not diceModule.is_lane_full(playerNumber, lane_choice) and not diceModule.dicePlaced and not diceModule.aiRolled) then
 		diceModule.place_dice_to_lane(playerNumber, diceNumber, lane_choice)
 		if (diceModule.are_all_lanes_full(diceModule.getCurrentPlayer())) then
 			local golem = gui.get_node("golemTalk")
@@ -262,6 +263,8 @@ function play_lane(self, node_id)
 		play_dice_sound(self)
 		print(lane_choice)
 		log_turn(self, lane_choice)
+	else
+		print("Incorrect click")
 	end
 end
 
@@ -315,9 +318,7 @@ function ask_golem_for_move(self)
 	
 	local body = json.encode(body) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://eoshtyj79v1s8sk.m.pipedream.net", "POST", golemHandleResponse, headers, body)
-
-	
+	http.request("https://eop5ahgi06r1qc3.m.pipedream.net", "POST", golemHandleResponse, headers, body)
 end
 
 function golemHandleResponse(self, id, response)
@@ -334,6 +335,8 @@ function golemHandleResponse(self, id, response)
 		
 	else
 		print("Error: ", response.status)
+		print("Trying again")
+		ask_golem_for_move(self)
 	end
 end
 
@@ -341,6 +344,8 @@ end
 function diceAIHandleResponse(self, id, response)
 	if response.status == 200 then
 		roll_dice_sound(self)
+		diceModule.aiRoll()
+		print(diceModule.aiRolled)
 		local data = json.decode(response.response)
 
 		local rolls_array = json.decode(data.rolls)
@@ -383,6 +388,8 @@ end
 function diceHandleResponse(self, id, response)
 	if response.status == 200 then
 		roll_dice_sound(self)
+		diceModule.personRoll()
+		print(diceModule.aiRolled)
 		local data = json.decode(response.response)
 		
 		local rolls_array = json.decode(data.rolls)
@@ -409,7 +416,7 @@ function diceHandleResponse(self, id, response)
 			diceModule.setDice(roll_number)
 			-- log the dice roll into the battle log
 			local golem = gui.get_node("golemTalk")
-			gui.set_text(golem, "I rolled a " .. diceModule.getDiceRoll())
+			gui.set_text(golem, "I rolled a " .. diceModule.getDiceRoll() .. "\nHmm where should I place it?")
 						
 			log_turn(self)
 		else
