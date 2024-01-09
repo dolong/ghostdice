@@ -1,41 +1,13 @@
 images {
-  image: "/assets/cardgame_tablet_yellow_back.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
-  image: "/assets/cardgame_tablet_yellow.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
-  image: "/assets/cardgame_circle_blue.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
-  image: "/assets/cardgame_circle_orange.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
-  image: "/assets/chara_portraits_batch1_axolotl.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
-  image: "/assets/chara_portraits_batch1_goblin.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
-  image: "/assets/chara_portraits_batch1_grizwiz.png"
-  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-}
-images {
   image: "/assets/chara_portraits_batch1_monke.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/assets/chara_portraits_batch1_pony.png"
+  image: "/assets/chara_portraits_batch1_mura.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
-  image: "/assets/mura.png"
+  image: "/assets/chara_portraits_batch1_goblin.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 animations {
@@ -112,35 +84,9 @@ animations {
   flip_horizontal: 0
   flip_vertical: 0
 }
-animations {
-  id: "loading"
-  images {
-    image: "/assets/chara_portraits_batch1_axolotl.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/chara_portraits_batch1_goblin.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/chara_portraits_batch1_grizwiz.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/chara_portraits_batch1_monke.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/chara_portraits_batch1_pony.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  playback: PLAYBACK_LOOP_FORWARD
-  fps: 5
-  flip_horizontal: 0
-  flip_vertical: 0
-}
 margin: 0
 extrude_borders: 2
 inner_padding: 0
 max_page_width: 0
 max_page_height: 0
+rename_patterns: ""

@@ -20,4 +20,19 @@ function on_message(self, message_id, message, sender)
 			print("Label not found: " .. label_url.path)
 		end
 	end
+
+	if message_id == hash("update_total_player_score") then
+		local playerNumber = message.playerNumber
+		local totalScore = message.totalScore
+
+		-- Construct the URL for the total score label
+		local total_score_label_url = msg.url(nil, "/locations", "player_" .. playerNumber .. "_total_score")
+
+		-- Check if the label exists and then set the text
+		if label.get_text(total_score_label_url) then
+			label.set_text(total_score_label_url, tostring(totalScore))
+		else
+			print("Total score label not found for player " .. playerNumber)
+		end
+	end
 end

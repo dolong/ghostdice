@@ -12,6 +12,45 @@ M.lastDiceRoll = 0
 M.dicePlaced = true 
 M.aiRolled = false 
 
+function M.getWinner()
+	local scorePlayer1 = 0
+	local scorePlayer2 = 0
+
+	-- Calculate scores for each lane for both players
+	for lane = 1, 3 do
+		scorePlayer1 = scorePlayer1 + M.calculate_lane_score(1, lane)
+		scorePlayer2 = scorePlayer2 + M.calculate_lane_score(2, lane)
+	end
+
+	-- Determine the winner
+	if scorePlayer1 > scorePlayer2 then
+		return 1 -- Player 1 wins
+	elseif scorePlayer2 > scorePlayer1 then
+		return 2 -- Player 2 wins
+	else
+		return 0 -- It's a tie
+	end
+end
+
+function M.getWinnerDifference()
+	local scorePlayer1 = 0
+	local scorePlayer2 = 0
+
+	-- Calculate scores for each lane for both players
+	for lane = 1, 3 do
+		scorePlayer1 = scorePlayer1 + M.calculate_lane_score(1, lane)
+		scorePlayer2 = scorePlayer2 + M.calculate_lane_score(2, lane)
+	end
+	-- Determine the winner
+	if scorePlayer1 > scorePlayer2 then
+		return scorePlayer1 - scorePlayer2 -- Player 1 wins
+	elseif scorePlayer2 > scorePlayer1 then
+		return scorePlayer2 - scorePlayer1 -- Player 2 wins
+	else
+		return 0 -- It's a tie
+	end
+end
+
 function M.calculate_lane_score(playerNumber, lane)
 	local table_name = "player_" .. playerNumber .. "_lane" .. lane
 	local lane_array = M[table_name]
@@ -115,18 +154,22 @@ function M.getCurrentPlayer()
 		return 2 -- Player 2's turn
 	end
 end
+
 function M.update_score_labels(playerNumber)
+	local totalScore = 0
+
 	for lane = 1, 3 do
 		local score = M.calculate_lane_score(playerNumber, lane)
--- 		local label_url = "/locations#player_" .. playerNumber .. "_score_" .. lane
--- 		
--- 		gui.set_text(gui.get_node(label_url), tostring(score))
--- 
+		totalScore = totalScore + score
 
-msg.post("/locations#locations", "update_score_label", {playerNumber = playerNumber, lane = lane, score = score})
-
+		-- Send a message to update individual lane scores
+		msg.post("/locations#locations", "update_score_label", {playerNumber = playerNumber, lane = lane, score = score})
 	end
+
+	-- Send a message with the total score
+	msg.post("/locations#locations", "update_total_player_score", {playerNumber = playerNumber, totalScore = totalScore})
 end
+
 function M.setVisual(playerNumber, lane)
 	-- Define the base square IDs for each player's lanes
 	local baseSquareId = {

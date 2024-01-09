@@ -1,5 +1,7 @@
 -- game_object_manager.script
 
+local diceModule = require "modules.dice"
+
 function set_sprite_z_index(sprite_id, new_z_index)
 	-- Get the current position (even if it returns 0,0,0)
 	local current_position = go.get_position(sprite_id)
@@ -16,16 +18,30 @@ local is_dice_roll_playing = false -- Flag to check if dice_roll is playing
 local last_roll = "dice_1"
 
 function on_message(self, message_id, message, sender)
-	print (message_id)
 	if message_id == hash("roll_dice") then
-		if go.exists("/dice_board_table#dice_roll") then
-			sprite.play_flipbook("/dice_board_table#dice_roll", hash("dice_roll"))
+		local dice_roll_url = "/dice_board_roll#dice_roll"		
+		
+		if diceModule.getCurrentPlayer() % 2 == 0 then
+			dice_roll_url = "/dice_board_roll#dice_roll_opponent"
+		end
+		
+		if go.exists(dice_roll_url) then
+			
+			local last_roll = "dice_1"
+
+			
+			sprite.play_flipbook(dice_roll_url, hash("dice_roll"))
 			self.dice_roll_timer = 0 -- Reset timer
 			is_dice_roll_playing = true -- Set flag to true when dice_roll starts
 			print("value: ", message.dice_roll_value)
+			--float_dice(self)
+			local message_data = { dice_roll_value = message.dice_roll_value }
+			msg.post("loginpage#loginmenu", "set_dice", message_data)
+			
+			--sprite.play_flipbook("/dice_board_table#dice_landed", "dice_faces_" .. message.dice_roll_value)
 			-- Extract the dice roll value from the message
-			local dice_roll_value = message.dice_roll_value -- Assuming the value is in the message
-			set_animation(self, dice_roll_value)
+			--local dice_roll_value = message.dice_roll_value -- Assuming the value is in the message
+			--set_animation(self, dice_roll_value)
 		else
 			print("dice_roll does not exist or cannot be found.")
 		end
@@ -67,10 +83,10 @@ function update(self, dt)
 		self.dice_roll_timer = self.dice_roll_timer + dt -- Update timer
 
 		-- Each frame is 1/5th of a second, so 4 frames last 4/5th of a second
-		if self.dice_roll_timer > (4 / 5) then
-			sprite.play_flipbook("/dice_board_table#dice_roll", hash(last_roll)) -- Change sprite
-
-			is_dice_roll_playing = false -- Reset flag
-		end
+-- 		if self.dice_roll_timer > (4 / 5) then
+-- 			sprite.play_flipbook("/dice_board_table#dice_roll", hash(last_roll)) -- Change sprite
+-- 
+-- 			is_dice_roll_playing = false -- Reset flag
+-- 		end
 	end
 end

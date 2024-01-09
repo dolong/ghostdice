@@ -73,38 +73,7 @@ animations {
     sprite_trim_mode: SPRITE_TRIM_MODE_OFF
   }
   playback: PLAYBACK_ONCE_FORWARD
-  fps: 10
-  flip_horizontal: 0
-  flip_vertical: 0
-}
-animations {
-  id: "dice_faces"
-  images {
-    image: "/assets/dice_png/rng/Face_rng1.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/dice_png/rng/Face_rng2.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/dice_png/rng/Face_rng3.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/dice_png/rng/Face_rng4.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/dice_png/rng/Face_rng5.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  images {
-    image: "/assets/dice_png/rng/Face_rng6.png"
-    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
-  }
-  playback: PLAYBACK_LOOP_FORWARD
-  fps: 10
+  fps: 20
   flip_horizontal: 0
   flip_vertical: 0
 }
@@ -120,3 +89,4 @@ extrude_borders: 2
 inner_padding: 0
 max_page_width: 0
 max_page_height: 0
+rename_patterns: ""

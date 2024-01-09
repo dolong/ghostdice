@@ -1,17 +1,33 @@
 local druid = require("druid.druid")
 local slider_extension = require("druid.extended.slider")
 local hover_shadow_style = require("modules.hover_button")
-
+local input = require("druid.extended.input")
+local current_silver = 0
 -- Register the extended slider component
 
 
 local function register_druid_extended_components(self)
+	druid.register("input", input)
 	druid.register("slider", slider_extension)
 end
+
 function init(self)
 	self.druid = druid.new(self)
+
 	register_druid_extended_components(self)
 
+	msg.post("loginpage#loginmenu", "disable_next")
+	self.username_field = self.druid:new_text("userid")
+	--self.druid:new_text("userid", "aa1231241")
+	
+	self.clear = self.druid:new_button("clear", clear_input_text)
+	self.login = self.druid:new_button("login", login)
+	self.rules = self.druid:new_button("rules", instructions)
+	-- self.option1 = self.druid:new_button("options1", login)
+	-- self.option2 = self.druid:new_button("options", login)
+	-- self.option3 = self.druid:new_button("options2", login)
+
+	
 	-- Initialize the slider
 	self.my_slider = self.druid:new_slider("slider_simple_pin", vmath.vector3(95, 0, 0), function(_, value)
 		-- Update the slider text as a percentage
@@ -22,7 +38,7 @@ function init(self)
 
 		-- Update the bet input field with the scaled value
 		if self.bet then
-			local scaled_value = math.ceil(value * 200)
+			local scaled_value = math.ceil(value * current_silver)
 			self.bet:set_text(tostring(scaled_value))
 		end
 	end)
@@ -34,9 +50,9 @@ function init(self)
 	self.bet = self.druid:new_input("silver", "wager")
 	
 	-- Bind the play_lane function with the specific node id for each button
-	local custom_style1 = self.druid:new_button("select_1/button", function() select_level(self, "select_1") end)
-	custom_style1:set_style(hover_shadow_style)
-
+-- 	local custom_style1 = self.druid:new_button("select_1/button", function() select_level(self, "select_1") end)
+-- 	custom_style1:set_style(hover_shadow_style)
+-- 
 	local custom_style2 = self.druid:new_button("select_2/button", function() select_level(self, "select_2") end)
 	custom_style2:set_style(hover_shadow_style)
 
@@ -44,6 +60,67 @@ function init(self)
 	custom_style3:set_style(hover_shadow_style)
 end
 
+function login(self)
+	user = gui.get_text(gui.get_node("userid"))
+	print(user)
+	--self.bet:get_text()
+	msg.post("loginpage#loginmenu", "set_user", { user = user })
+	
+	local body = json.encode({username = user, password = "12345678"}) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request("https://leelabot.app/api/auth/register-or-login", "POST", handle_login, headers, body)		
+end
+
+function instructions(self)
+	msg.post("loginpage#instructions", "enable")
+	msg.post("dialoguePrompt#dialogue_prompt", "disable")
+	
+end
+function get_silver(self, user)
+	local body = json.encode({username = user}) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request("https://leelabot.app/api/get-silver", "POST", handle_get_silver, headers, body)		
+end
+
+function handle_get_silver(self, id, response)
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		local silver = data.result.user_silver
+		print("Silver", (data.result.user_silver))
+		current_silver = data.result.user_silver
+		self.login = 
+		msg.post("loginpage#loginmenu", "set_silver", { silver_amount = current_silver })
+	else
+		print(response.response)
+		--username taken
+	end
+end
+
+function handle_login(self, id, response)
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		local user = data.result.user.username
+		print("User Found", data.result.user.username)
+		
+		local connected_node = gui.get_node("connected")
+		gui.set_text(connected_node, "Connected")
+		gui.set_color(connected_node, vmath.vector4(0, 1, 0, 1))
+
+		gui.set_text(self.login.node, "")
+		self.login:set_enabled(false)
+		
+		get_silver(self, user)	
+			
+	else
+		print(response.response)
+		--username taken
+	end
+end
+
+--
+function clear_input_text(self)
+	self.userinput:set_text("")  -- Clears the text in the input field
+end
 --
 function select_level(self, node_id)
 	
@@ -52,8 +129,13 @@ function select_level(self, node_id)
 
 	-- Convert extracted values to numbers
 	choice = tonumber(choice)
-
+	if (choice == 2) then
+		ai = "https://leelabot.app/api/ghostdice/chatgpt3_5/choose-lane"
+	elseif (choice == 3) then
+		ai = "https://leelabot.app/api/ghostdice/choose-lane"
+	end
 	print(choice)
+	msg.post("loginpage#loginmenu", "set_ai_level", { ai_choice = ai } )
 	highlight_choice(self, choice)
 end
 
@@ -75,7 +157,13 @@ function highlight_choice(self, choice)
 		end
 	end
 end
+
 function dismiss(self)
+	msg.post("loginpage#loginmenu", "enable_next")
+	if (bet) then
+		bet = self.bet:get_text()
+	end
+	msg.post("loginpage#loginmenu", "set_bet", { bet_amount = bet })
 	-- Get the root node of the GUI scene
 	local root_node = gui.get_node("root")
 
@@ -95,6 +183,12 @@ end
 
 function on_message(self, message_id, message, sender)
 	self.druid:on_message(message_id, message, sender)
+
+	if message_id == hash("set_username") then
+		self.druid:new_text("userid", message.user)
+	end
+	
+	--
 end
 
 
