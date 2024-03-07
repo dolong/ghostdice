@@ -5,9 +5,10 @@ local input = require("druid.extended.input")
 local progress = require("druid.extended.progress")
 local timer_component = require("druid.extended.timer")
 local camera = require "orthographic.camera"
-local cardDataModule = require "modules.cardData"
 local diceModule = require "modules.dice"
 local slider = require("druid.extended.slider")
+local player_data = require("modules.player")
+local external_calls = require("modules.external_calls")
 
 local hover_shadow_style = require("modules.hover_button")
 local wager = 0
@@ -16,19 +17,23 @@ player = "x"
 local game_over = false
 local username = ""
 local starting_arrows = true
+local token = ""
 
 local is_dice_roll_playing = false -- Flag to check if dice_roll is playing
 local last_roll = "dice_1"
 
-local chatgpt = "https://leelabot.app/api/ghostdice/chatgpt3_5/choose-lane"
+--chatgpt is the LLM set to play against
+local chatgpt = external_calls.api_url .. external_calls.chatgpt
 
 local function set_ai_level(self, message_id, message) 
-
-	local chatgpt3_5 = "https://leelabot.app/api/ghostdice/chatgpt3_5/choose-lane"
-	local chatgpt4 = "https://leelabot.app/api/ghostdice/choose-lane"
 	ai_choice = message.ai_choice
 	chatgpt = ai_choice
 	print (chatgpt)
+end
+
+local function set_token(self, message_id, message) 
+	token = message.token
+	print (token)
 end
 
 local function receive_username(self, name)
@@ -37,6 +42,8 @@ local function receive_username(self, name)
 	return { user = name }
 end
 
+-- IMPORTANT: This is where we check for the user's telegram handle
+-- MISSING: VERIFY telegram auth to make sure the user isn't just populating the namespace with the var Telegram
 local function get_username()
 	if html5 then
 		local js_code = [[
@@ -68,16 +75,12 @@ local function register_druid_extended_components(self)
 	druid.register("input", input)
 	druid.register("progress", progress)
 	druid.register("timer", timer_component)
-	-- Register the extended slider component
 	druid.register("slider", slider_extension)
 end
+
 function float_dice(self, message_id, message)
 	local amplitude = 20  -- Change this value to set the floating range
 	local duration = 1    -- Change this value to set the speed of the float
-
-	print("Message ID: ", message_id)
-	print("Dice Roll Value: ", message.dice_roll_value)
-
 	local dice_roll_value = message.dice_roll_value
 	local node = gui.get_node("dice_box")
 
@@ -103,9 +106,9 @@ function animate_float(self, node, original_position, amplitude, duration)
 		-- Animate position
 		gui.animate(node, "position", target_position, gui.EASING_INOUTSINE, duration, 0, function()
 			-- Start fade-out animation at the end of the position animation
-			gui.animate(node, "color.w", 0, gui.EASING_INOUTSINE, duration / 2, 0, function()
-				--animate(-direction)  -- Reverse the direction for the next animation
-			end)
+			-- gui.animate(node, "color.w", 0, gui.EASING_INOUTSINE, duration / 2, 0, function()
+			-- 	--animate(-direction)  -- Reverse the direction for the next animation
+			-- end)
 		end)
 	end
 
@@ -113,6 +116,7 @@ function animate_float(self, node, original_position, amplitude, duration)
 	gui.set_color(node, vmath.vector4(1, 1, 1, 0))
 	animate(1)  -- Start with moving up (direction = 1)
 end
+
 function init(self)
 	-- Wait until username is received from JavaScript
 	get_username()
@@ -131,12 +135,19 @@ function init(self)
 	math.randomseed(os.time())  -- Seed the random number generator once	MAY NOT USE THIS if we want VRF
 	msg.post("small_dialogue#small_dialogue_prompt", "disable")
 
+	
 	self.druid = druid.new(self)
 	register_druid_extended_components(self)
+	
+	local node = gui.get_node("model_training")
+
+	-- Hide the node
+	gui.set_enabled(node, false)
+	
 	self.refreshButton = self.druid:new_button("refresh/button", refresh)	
 	self.rollDiceButton = self.druid:new_button("roll_dice/button", next)	
 	self.rollDiceBox = self.druid:new_button("roll_dice/box", next)	
-	self.button = self.druid:new_button("golem_roll/button", ask_golem_for_move)	
+	self.button = self.druid:new_button("golem_roll/button", ask_ai_for_move)	
 
 	
 	self.battle_log = self.druid:new_input("inputbox", "cardEffect")
@@ -151,11 +162,20 @@ function init(self)
 	local custom_style3 = self.druid:new_button("select_player_1_lane3/button", function() play_lane(self, "select_player_1_lane3") end)
 	custom_style3:set_style(hover_shadow_style)
 	
-	
-	-- Subscribe to the on_input_select event
-	--self.battle_log.on_input_select:subscribe(on_input_select, self)
 end
 
+function update(self, dt)
+	if is_dice_roll_playing then
+		self.dice_roll_timer = self.dice_roll_timer + dt -- Update timer
+
+		-- Each frame is 1/5th of a second, so 4 frames last 4/5th of a second
+		if self.dice_roll_timer > (4 / 5) then
+			sprite.play_flipbook("dice_roll", hash(last_roll)) -- Change sprite
+
+			is_dice_roll_playing = false -- Reset flag
+		end
+	end
+end
 
 local function roll_dice_and_play_as_ai(self)
 	print("Roll Dice Button was clicked!")
@@ -165,7 +185,6 @@ end
 
 local function log_turn(self, lane_choice)
 
-	print("logging turn")
 	local currentText = self.battle_log:get_text()
 	-- Add a new line if there isn't anything yet
 	if string.len(currentText) > 1 then
@@ -180,7 +199,6 @@ local function log_turn(self, lane_choice)
 		parse_logs_for_chatgpt(self, "user_rolled")
 	end
 
-	--self.battle_log:set_text(newText)
 end
 
 function parse_logs_for_chatgpt(self, action, lane_choice)
@@ -190,12 +208,11 @@ function parse_logs_for_chatgpt(self, action, lane_choice)
 	playerNumber = diceModule.getCurrentPlayer()
 
 	if (action == "user_rolled") then
-		print ("logging roll")
 		log = log .. "Turn " .. diceModule.getTurn() .. ",\n" 
 		log = log .. "It is now player_" .. currentPlayer .. "s" .. " turn" .. "\n"
 		log = log .. "Roll Phase: player_" .. currentPlayer .. " rolls" .. " a " .. diceNumber .. "\n"
 	elseif ( action == "user_played") then
-		log = log .. "Lane Choice Phase: lane_choice: {'".. lane_choice .. "'}." .. "}\n" 
+		log = log .. "Lane Choice Phase: lane_choice: {'".. lane_choice .. "'}" .. "\n" 
 		log = log .. "Game Update: Your lanes are now " .. diceModule.get_player_lanes_as_string(playerNumber) .. "\n" 
 		if diceModule.check_duplicate_in_opponent_player(playerNumber, diceNumber, lane_choice) then
 			log = log .. "Discard Phase: I see duplicates in opponent lane_" .. lane_choice .. ", removing\n" 
@@ -211,8 +228,8 @@ function parse_logs_for_chatgpt(self, action, lane_choice)
 	end	
 
 	self.battle_log:set_text(log)
-	print("set log to ".. log)
 end
+
 local function getCoordinates(squareId)
 	local mapping = {
 		["00"] = "0,0",
@@ -227,6 +244,7 @@ local function getCoordinates(squareId)
 	}
 	return mapping[squareId] or "0,0"  -- Default to "0,0" if squareId is not in the mapping
 end
+
 local function receive_username(self, username)
 	-- Handle the username here. For example, storing it in a property
 	self.username = username
@@ -239,7 +257,6 @@ local function receive_username(self, username)
 end
 
 function start()
-
 	msg.post("small_dialogue#small_dialogue_prompt", "enable")
 end
 
@@ -247,7 +264,8 @@ function enable_starting_arrows(self)
 	local arrows = gui.get_node("arrows")
 	gui.set_enabled(arrows, true)
 end
--- using click
+
+-- Interprets the user's action
 function play_lane(self, node_id)
 	-- Extract playerNumber and lane from the node_id
 	-- Assuming node_id is in the format "select_player_X_laneY"
@@ -278,18 +296,18 @@ function play_lane(self, node_id)
 		end
 		
 		diceModule.place_dice_to_lane(playerNumber, diceNumber, lane_choice)
+
+		--TODO: We need to make this a function and call it after the dice explode, 
+		--there is a bug right now where user's final action doesn't blow up opps
 		if (diceModule.are_all_lanes_full(diceModule.getCurrentPlayer())) then
 			local golem = gui.get_node("golemTalk")
 			check_winner(self)			
 			--user_wins(self)
 			disable_next_button(self)		
 		else 
-			-- skip the wait
-
 			play_dice_sound(self)
 			print(lane_choice)
-			log_turn(self, lane_choice)
-			
+			log_turn(self, lane_choice)			
 			disable_next_button(self)
 			timer.delay(1, false, function()
 				enable_next_button(self)
@@ -300,36 +318,7 @@ function play_lane(self, node_id)
 		print("Incorrect click")
 	end
 end
-function check_winner(self)
-	local golem = gui.get_node("golemTalk")
-	if (diceModule.getWinner() == 1) then
-		gui.set_text(golem, "Good Game! You win\n You scored " .. diceModule.getWinnerDifference() .. " Points higher!")	
-		
-		win_silver(self)
-		disable_next_button(self)
 
-		user_wins(self)
-	else 
-		gui.set_text(golem, "Good Game!\nYou lose by a " ..  diceModule.getWinnerDifference() .. " point difference.")	
-		--lose_silver(wager)
-		disable_next_button(self)
-
-		user_loses(self)
-	end
-
-	game_over = true
-end
-
-function user_wins(self)
-	-- Replace 'small_dialogue_go' with the actual ID of the game object
-	-- that has small_dialogue_prompt.gui_script attached to it
-	msg.post("small_dialogue#small_dialogue_prompt", "user_wins")
-end
-function user_loses(self)
-	-- Replace 'small_dialogue_go' with the actual ID of the game object
-	-- that has small_dialogue_prompt.gui_script attached to it
-	msg.post("small_dialogue#small_dialogue_prompt", "user_loses")
-end
 -- using AI
 function ai_play_lane(self, lane_choice)
 	--disable_next_button(self)
@@ -350,6 +339,35 @@ function ai_play_lane(self, lane_choice)
 	end
 end
 
+
+function check_winner(self)
+	local golem = gui.get_node("golemTalk")
+	if (diceModule.getWinner() == 1) then
+		gui.set_text(golem, "Good Game! You win\n You scored " .. diceModule.getWinnerDifference() .. " Points higher!")	
+
+		win_silver(self)
+		disable_next_button(self)
+
+		user_wins(self)
+	else 
+		gui.set_text(golem, "Good Game!\nYou lose by a " ..  diceModule.getWinnerDifference() .. " point difference.")	
+		--lose_silver(wager)
+		disable_next_button(self)
+
+		user_loses(self)
+	end
+
+	game_over = true
+end
+
+function user_wins(self)
+	msg.post("small_dialogue#small_dialogue_prompt", "user_wins")
+end
+
+function user_loses(self)
+	msg.post("small_dialogue#small_dialogue_prompt", "user_loses")
+end
+
 function play_dice_sound(self)
 	-- Assuming you have a sound component called 'roll_dice_sound'
 	msg.post("/sounds#dice_place_sound", "play_sound", {gain = 1.0})
@@ -364,9 +382,9 @@ function randomize_dice(self, ai_play)
 	local body = json.encode({dice = 1}) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
 	if (ai_play) then
-		http.request("https://leelabot.app/api/ghostdice/diceroll", "POST", diceAIHandleResponse, headers, body)
+		http.request(external_calls.api_url .. external_calls.roll_dice, "POST", diceAIHandleResponse, headers, body)
 	else 
-		http.request("https://leelabot.app/api/ghostdice/diceroll", "POST", diceHandleResponse, headers, body)
+		http.request(external_calls.api_url .. external_calls.roll_dice, "POST", diceHandleResponse, headers, body)
 	end
 end
 
@@ -377,33 +395,58 @@ end
 
 function win_silver(self) 
 
-	print("mint Test")
+	user = player_data.get_id()
+	tokenData = player_data.get_token()
+	
+	print("Mint")
 	local body = json.encode({ 
-		userid = "test_user", 
-		Timestamp = "1703610033",
-		Wallet = "0xE3FA7AdA227563c938cfD6Bce484098c26Fe160a",
-		twitterUserName ="TrichmonG22892",
-		discordUserDiscriminator = "mon_trix#0",
-		Email = "testuser@test.com",
+		userid = user, 
+		Timestamp = "",
+		Wallet = "",
+		twitterUserName ="",
+		discordUserDiscriminator = "",
+		Email = "",
 		result = "win",
-		difference = 10,
-		history = "dummy text",
+		difference = diceModule.getWinnerDifference(),
+		history = "",
 	}) -- encoding data as a JSON string
-	local headers = {["Content-Type"] = "application/json", ["x-api-key"] = "NJIN9HahZE12wBOCJZBWS66SccENr2dg9ZzmuCPi"} -- setting content type to json
-	http.request("https://bolt-dev.lightlink.io/stats/65937dd05fb59cc0eaa43bb2", "POST", handle_win_silver, headers, body)	
+	
+	local headers = {["Content-Type"] = "application/json", ["x-api-key"] = external_calls.lightlink_api_key} -- setting content type to json
+	http.request(external_calls.lightlink_create_nft, "POST", handle_win_silver, headers, body)	
 
+	-- LOG
+	full_log = self.battle_log:get_text()
+	local processed_log = replace_newlines_with_literal(full_log)
+	
+	local log_body = json.encode({username = user, token = tokenData, data_type = "LOG_GAME", data_log = processed_log}) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request(external_calls.api_url .. external_calls.log_data, "POST", handle_game_log, headers, log_body)			
+	
 	-- Get the current silver count from the node
 	local silver_count_node = gui.get_node("silver_count")
 	local current_silver = tonumber(gui.get_text(silver_count_node)) or 0
 	
 	gui.set_text(silver_count_node, tostring(current_silver + diceModule.getWinnerDifference()))
+
+	local silver_body = json.encode({username = user, token = tokenData, silver = diceModule.getWinnerDifference()}) 
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request(external_calls.api_url .. external_calls.set_silver, "POST", handle_win_silver, headers, silver_body)		
 	
+end
+
+function handle_game_log(self, id, response)
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		--start_game(self)
+	else
+		print(response.response)
+	end
 end
 
 function lose_silver(self) 
 	local body = json.encode({username = user, silver = -wager}) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://leelabot.app/api/set-silver", "POST", handle_lose_silver, headers, body)		
+	http.request(external_calls.api_url .. external_calls.set_silver, "POST", handle_lose_silver, headers, body)		
 end
 
 function handle_win_silver(self, id, response)
@@ -431,14 +474,39 @@ function handle_lose_silver(self, id, response)
 	end
 end
 
-function ask_golem_for_move(self)
+function get_game_status_for_chat_gpt(self)
+end
+
+function ask_ai_for_move(self)
 	full_log = self.battle_log:get_text()
 	local processed_log = replace_newlines_with_literal(full_log)
-	body = '[{"role": "system", "content": "' .. processed_log .. '"}]'
+
 	
-	local body = json.encode(body) -- encoding data as a JSON string
+	parselog = '[{"role": "system", "content": "' .. processed_log .. '"}]'
+	local body = json.encode({log = parselog, token = token}) -- encoding data as a JSON string
+	print(token)
+	
+	--local body = json.encode(body) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+
 	http.request(chatgpt, "POST", golemHandleResponse, headers, body)
+end
+
+function log_error_game(self, data_type_log, data_to_log)
+	user = player_data.get_id()
+	tokenData = player_data.get_token()
+	local body = json.encode({username = user, token = tokenData, data_type = data_type_log, data_log = data_to_log}) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request(external_calls.api_url .. external_calls.log_data, "POST", handle_error_game, headers, body)		
+end
+
+function handle_error_game(self, id, response)
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		print('logged error')
+	else
+		print(response.response)
+	end
 end
 
 function golemHandleResponse(self, id, response)
@@ -452,14 +520,39 @@ function golemHandleResponse(self, id, response)
 		if (game_over) then
 		else
 			local golem = gui.get_node("golemTalk")		
-			gui.set_text(golem, gui.get_text(golem) .. "\nI'll put it here")
+			gui.set_text(golem, gui.get_text(golem) .. "I'll put it here. " .. "\n(Click anywhere to continue)")
 		end
 	else
 		print("Error: ", response.status)
+		print("Response: ", response.response)
 		print("Trying again")
-		timer.delay(1, false, function()
-			ask_golem_for_move(self)
-		end)
+		if (response.status == 400) then
+			--this means chatgpt is lagging is bad
+
+			local node = gui.get_node("model_training")
+			-- Hide the node
+			gui.set_enabled(node, true)
+
+			log_error_game(self, "ERRORED_GAME", "OPEN AI ERROR")
+
+			local golem = gui.get_node("golemTalk")
+			gui.set_text(golem, "Our Servers are experiencing issues.\nPlease reset the game. ")
+			
+		elseif (response.status == 401) then
+			--this means we have a incorrect choice
+			local node = gui.get_node("model_training")
+
+			log_error_game(self, "AI_ERROR", "Incorrect Lane by AI")
+			-- Hide the node
+			gui.set_enabled(node, true)
+			timer.delay(1, false, function()
+				ask_ai_for_move(self)
+				gui.set_enabled(node, false)
+			end)
+			
+		end
+		
+		
 	end
 end
 
@@ -495,13 +588,13 @@ function diceAIHandleResponse(self, id, response)
 			diceModule.setDice(roll_number)
 			-- log the dice roll into the battle log
 			local golem = gui.get_node("golemTalk")
-			gui.set_text(golem, "I rolled a " .. diceModule.getDiceRoll())
+			gui.set_text(golem, "I rolled a " .. diceModule.getDiceRoll() .. ". ")
 
 			log_turn(self)
 
 			--disable hover
 			disable_hover_lanes(self)
-			ask_golem_for_move(self)
+			ask_ai_for_move(self)
 
 		else
 			print("No dice roll data received.")
@@ -545,7 +638,7 @@ function diceHandleResponse(self, id, response)
 			diceModule.setDice(roll_number)
 			-- log the dice roll into the battle log
 			local golem = gui.get_node("golemTalk")
-			gui.set_text(golem, "You rolled a " .. diceModule.getDiceRoll() .. "\nWhere will you put it?")
+			gui.set_text(golem, "You rolled a " .. diceModule.getDiceRoll() .. ".\nWhere will you put it?")
 						
 			log_turn(self)
 		else
@@ -576,18 +669,6 @@ function set_animation(self, dice_roll_value)
 	end
 end
 
-function update(self, dt)
-	if is_dice_roll_playing then
-		self.dice_roll_timer = self.dice_roll_timer + dt -- Update timer
-
-		-- Each frame is 1/5th of a second, so 4 frames last 4/5th of a second
-		if self.dice_roll_timer > (4 / 5) then
-			sprite.play_flipbook("dice_roll", hash(last_roll)) -- Change sprite
-
-			is_dice_roll_playing = false -- Reset flag
-		end
-	end
-end
 
 function roll_animation_dice(self, message_data)		
 	msg.post("/players#dice", "roll_dice", message_data)
@@ -650,9 +731,6 @@ function dice_roll_6(self)
 	roll_animation_dice(self, message_data)	
 end
 
-function show_golem_black()	
-	msg.post("/players#golem", "show_black")
-end
 
 function roll_dice(self)	
 	print('randomizing')
@@ -696,7 +774,6 @@ function next(self)
 end
 
 function disable_next_button(self)
-	print('disable next')
 		enable_hover_lanes(self)
 	-- Disable the button
 	if self.rollDiceButton then
@@ -722,7 +799,6 @@ function disable_hover_lanes(self)
 end
 
 function enable_next_button(self)
-	print('enable next')
 	disable_hover_lanes(self)
 	
 	-- Enable the button
@@ -734,9 +810,6 @@ function enable_next_button(self)
 
 end
 
-function hide_golem_thinking()	
-	msg.post("/players#golem", "hide_loading")
-end
 function final(self)
 	self.druid:final()
 	-- button.unregister()
@@ -780,6 +853,10 @@ function on_message(self, message_id, message, sender)
 		next(self)  -- Call the next function
 	end
 
+	if message_id == hash("set_token") then
+		set_token(self, message_id, message)
+	end
+	
 	if message_id == hash("disable_next") then
 		disable_next_button(self)		
 	end

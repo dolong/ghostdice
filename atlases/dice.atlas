@@ -50,6 +50,10 @@ images {
   image: "/assets/dice_png/faces/dice_faces_6.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
+images {
+  image: "/assets/dice_png/faces/dice_select.png"
+  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+}
 animations {
   id: "dice_roll"
   images {
@@ -78,9 +82,29 @@ animations {
   flip_vertical: 0
 }
 animations {
-  id: "New Animation"
+  id: "poof"
+  images {
+    image: "/assets/dice_png/FX001_01.png"
+    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+  }
+  images {
+    image: "/assets/dice_png/FX001_02.png"
+    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+  }
+  images {
+    image: "/assets/dice_png/FX001_03.png"
+    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+  }
+  images {
+    image: "/assets/dice_png/FX001_04.png"
+    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+  }
+  images {
+    image: "/assets/dice_png/FX001_05.png"
+    sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+  }
   playback: PLAYBACK_LOOP_FORWARD
-  fps: 60
+  fps: 10
   flip_horizontal: 0
   flip_vertical: 0
 }

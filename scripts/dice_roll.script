@@ -81,12 +81,5 @@ end
 function update(self, dt)
 	if is_dice_roll_playing then
 		self.dice_roll_timer = self.dice_roll_timer + dt -- Update timer
-
-		-- Each frame is 1/5th of a second, so 4 frames last 4/5th of a second
--- 		if self.dice_roll_timer > (4 / 5) then
--- 			sprite.play_flipbook("/dice_board_table#dice_roll", hash(last_roll)) -- Change sprite
--- 
--- 			is_dice_roll_playing = false -- Reset flag
--- 		end
 	end
 end

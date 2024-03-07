@@ -18,22 +18,22 @@ function init(self)
 end
 
 function close(self)
-	self.click_count = self.click_count + 1  -- Increment click counter
+	self.click_count = self.click_count + 2  -- Increment click counter
 
 	local text_prompt = gui.get_node("prompt_text1")
 	
 	if self.click_count == 1 then
-		msg.post("loginpage#loginmenu", "play_next")
 		-- First click actions
 
 		gui.set_text(text_prompt, "Choose a Lane")
 
-		msg.post("loginpage#loginmenu", "disable_next")
--- 		local arrows = gui.get_node("arrows")
--- 		gui.set_enabled(arrows, true)
--- 
 
 	elseif self.click_count == 2 then
+		msg.post("loginpage#loginmenu", "play_next")
+		msg.post("loginpage#loginmenu", "disable_next")
+		-- 		local arrows = gui.get_node("arrows")
+		-- 		gui.set_enabled(arrows, true)
+		
 		msg.post("loginpage#loginmenu", "enable_starting_arrows")
 		-- Second click actions
 		local root_node = gui.get_node("root")
@@ -56,6 +56,7 @@ end
 function on_message(self, message_id, message, sender)
 	self.druid:on_message(message_id, message, sender)
 	local text_prompt = gui.get_node("prompt_text1")
+	local click_prompt = gui.get_node("click")
 	if message_id == hash("user_wins") then
 		-- Enable the root node
 		local root_node = gui.get_node("root")
@@ -68,6 +69,9 @@ function on_message(self, message_id, message, sender)
 		
 		-- Reset the click counter
 		self.click_count = 2
+
+		
+		gui.set_text(click_prompt, "Restart the game \nto play again!")
 	end
 
 	if message_id == hash("user_loses") then
@@ -79,6 +83,7 @@ function on_message(self, message_id, message, sender)
 
 		-- Reset the click counter
 		self.click_count = 2
+		gui.set_text(click_prompt, "Restart the game \nto play again!")
 	end
 end
 

@@ -1,17 +1,157 @@
 local druid = require("druid.druid")
+local player_data = require("modules.player")
+local external_calls = require("modules.external_calls")
 -- Register the extended slider component
 
+local max_games_per_day = 10
+local games_played = 10
 
 function init(self)
 	self.druid = druid.new(self)
-	self.clear = self.druid:new_button("play", dismiss)
+	self.clear = self.druid:new_button("play", play)
 end
 
+function play(self)
+	if (games_played < max_games_per_day) then
+		create_game(self)
+	end
+end
 
-function dismiss(self)
+function start_game(self)
 	msg.post("loginpage#instructions", "disable")
-	msg.post("dialoguePrompt#dialogue_prompt", "enable")
+	msg.post("loginpage#loginmenu", "enable_next")
+	if (bet) then
+		bet = self.bet:get_text()
+	end
+	msg.post("loginpage#loginmenu", "set_bet", { bet_amount = bet })
+	-- Get the root node of the GUI scene
+	local root_node = gui.get_node("root")
+
+	-- Disable (hide) the root node and all its children
+	gui.set_enabled(root_node, false)
+
 end
+
+function check_quota(self, time_to_next_play)
+	if (games_played < max_games_per_day) then
+		print("not over quota")
+		--create_game(self)
+		local text_prompt = gui.get_node("remaining")
+		gui.set_text(text_prompt, max_games_per_day - games_played .. " Remaining Plays!\n" .. time_to_next_play)
+	else 
+		print("over quota")
+		local text_prompt = gui.get_node("remaining")
+		gui.set_text(text_prompt, "0 Remaining Plays!\n" .. time_to_next_play)
+	end
+end
+
+function check_plays(self)
+	user = player_data.get_id()
+	tokenData = player_data.get_token()
+	local body = json.encode({username = user, token = tokenData, data_type = "CREATE_GAME", duration = 12}) -- encoding data as a JSON string
+	
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request(external_calls.api_url .. "api/ai-logs/get-game-log", "POST", handle_check, headers, body)		
+end
+
+function check_error_plays(self)
+	user = player_data.get_id()
+	tokenData = player_data.get_token()
+	local body = json.encode({username = user, token = tokenData, data_type = "ERRORED_GAME", duration = 12}) -- encoding data as a JSON string
+
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request(external_calls.api_url .. "api/ai-logs/get-game-log", "POST", handle_error_check, headers, body)		
+end
+
+--This checks to see if you received any 400 errors in your games and refunds games
+function handle_error_check(self, id, response)
+	time_to_next_play = ""
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		local total_error_logs = data.total_logs
+		local current_system_time = data.time_now
+		local logs = data.game_logs
+
+		print("total_error_logs", total_error_logs)
+		games_played = games_played - total_error_logs
+		check_quota(self, time_to_next_play)
+
+	else
+		print(response.response)
+	end
+end
+
+function getGMTTime()
+	local now = os.time()
+	local localTimeZone = os.difftime(now, os.time(os.date("!*t", now)))
+	local gmtTime = now - localTimeZone
+	return gmtTime
+end
+
+function handle_check(self, id, response)
+	time_to_next_play = ""
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		local total_logs = data.total_logs
+		local current_system_time = data.time_now
+		local logs = data.game_logs
+		if logs and #logs > 0 then
+			local log_timestamp_str = logs[1].timestamp -- Example: "2024-02-23 12:16:46"
+			print(logs[1].timestamp)
+			-- Convert log_timestamp_str to os.time format
+			local year, month, day, hour, min, sec = log_timestamp_str:match("(%d+)-(%d+)-(%d+) (%d+):(%d+):(%d+)")
+			local log_timestamp = os.time({year=year, month=month, day=day, hour=hour, min=min, sec=sec})
+			local current_time = getGMTTime() 
+
+			-- Current time in os.time format
+			print(current_time)
+			-- Calculate the difference in seconds
+			local time_diff = current_time - log_timestamp
+			print(time_diff)
+			
+			-- The total quota time is 12 hours in seconds
+			local quota_time = 12 * 60 * 60
+
+			-- Calculate the time remaining from the quota time minus the time difference
+			local time_remaining = math.max(0, quota_time - time_diff)
+
+			-- Convert time_remaining from seconds to hours:minutes:seconds format
+			local hours = math.floor(time_remaining / 3600)
+			local minutes = math.floor((time_remaining % 3600) / 60)
+			local seconds = time_remaining % 60
+
+			time_to_next_play = hours .. " hours, " .. minutes .. " minutes remaining \ntill next play available"
+		else
+			print("No game play logs found")
+		end
+		
+			
+		print("total_logs", total_logs)
+		games_played = total_logs
+		check_error_plays(self)
+		
+	else
+		print(response.response)
+	end
+end
+
+function create_game(self)
+	user = player_data.get_id()
+	tokenData = player_data.get_token()
+	local body = json.encode({username = user, token = tokenData, data_type = "CREATE_GAME", data_log = "Starting a game"}) -- encoding data as a JSON string
+	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
+	http.request(external_calls.api_url .. "api/ai-logs/log-data", "POST", handle_create, headers, body)		
+end
+
+function handle_create(self, id, response)
+	if response.status == 200 then
+		local data = json.decode(response.response)
+		start_game(self)
+	else
+		print(response.response)
+	end
+end
+
 
 function final(self)
 	self.druid:final()
@@ -25,6 +165,11 @@ end
 
 function on_message(self, message_id, message, sender)
 	self.druid:on_message(message_id, message, sender)
+
+	if message_id == hash("get_games_played") then
+		check_plays(self)
+	end
+	
 end
 
 

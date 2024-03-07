@@ -1,5 +1,5 @@
 [bootstrap]
-main_collection = /main/dicegame.collectionc
+main_collection = /main/full_game.collectionc
 render = /orthographic/render/orthographic.renderc
 
 [script]
@@ -44,6 +44,7 @@ show_fullscreen_button = 0
 wasm_streaming = 0
 htmlfile = /engine_template.html
 heap_size = 1024
+cssfile = /builtins/manifests/web/dark_theme.css
 
 [sprite]
 subpixels = 0

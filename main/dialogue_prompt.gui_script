@@ -1,6 +1,8 @@
 local druid = require("druid.druid")
 local slider_extension = require("druid.extended.slider")
 local hover_shadow_style = require("modules.hover_button")
+local player_data = require("modules.player")
+local external_calls = require("modules.external_calls")
 local input = require("druid.extended.input")
 local current_silver = 0
 -- Register the extended slider component
@@ -18,14 +20,12 @@ function init(self)
 
 	msg.post("loginpage#loginmenu", "disable_next")
 	self.username_field = self.druid:new_text("userid")
-	--self.druid:new_text("userid", "aa1231241")
 	
 	self.clear = self.druid:new_button("clear", clear_input_text)
 	self.login = self.druid:new_button("login", login)
 	self.rules = self.druid:new_button("rules", instructions)
-	-- self.option1 = self.druid:new_button("options1", login)
-	-- self.option2 = self.druid:new_button("options", login)
-	-- self.option3 = self.druid:new_button("options2", login)
+
+	self.rules:set_enabled(false)
 
 	
 	-- Initialize the slider
@@ -67,8 +67,10 @@ function login(self)
 	msg.post("loginpage#loginmenu", "set_user", { user = user })
 	
 	local body = json.encode({username = user, password = "12345678"}) -- encoding data as a JSON string
+
+	player_data.set_id(user)
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://leelabot.app/api/auth/register-or-login", "POST", handle_login, headers, body)		
+	http.request(external_calls.api_url .. "api/auth/register-or-login", "POST", handle_login, headers, body)		
 end
 
 function instructions(self)
@@ -79,7 +81,7 @@ end
 function get_silver(self, user)
 	local body = json.encode({username = user}) -- encoding data as a JSON string
 	local headers = {["Content-Type"] = "application/json"} -- setting content type to json
-	http.request("https://leelabot.app/api/get-silver", "POST", handle_get_silver, headers, body)		
+	http.request(external_calls.api_url .. "/api/get-silver", "POST", handle_get_silver, headers, body)		
 end
 
 function handle_get_silver(self, id, response)
@@ -101,7 +103,10 @@ function handle_login(self, id, response)
 		local data = json.decode(response.response)
 		local user = data.result.user.username
 		print("User Found", data.result.user.username)
-		
+		print("Token Found", data.result.session.token)
+
+		msg.post("loginpage#loginmenu", "set_token", { token = data.result.session.token })
+		player_data.set_token(data.result.session.token)
 		local connected_node = gui.get_node("connected")
 		gui.set_text(connected_node, "Connected")
 		gui.set_color(connected_node, vmath.vector4(0, 1, 0, 1))
@@ -110,7 +115,8 @@ function handle_login(self, id, response)
 		self.login:set_enabled(false)
 		
 		get_silver(self, user)	
-			
+		self.rules:set_enabled(true)
+		msg.post("loginpage#instructions", "get_games_played")
 	else
 		print(response.response)
 		--username taken
@@ -130,9 +136,9 @@ function select_level(self, node_id)
 	-- Convert extracted values to numbers
 	choice = tonumber(choice)
 	if (choice == 2) then
-		ai = "https://leelabot.app/api/ghostdice/chatgpt3_5/choose-lane"
+		ai = external_calls.api_url .. external_calls.chatgpt
 	elseif (choice == 3) then
-		ai = "https://leelabot.app/api/ghostdice/choose-lane"
+		ai = external_calls.api_url .. external_calls.chatgpt
 	end
 	print(choice)
 	msg.post("loginpage#loginmenu", "set_ai_level", { ai_choice = ai } )
@@ -141,8 +147,8 @@ end
 
 function highlight_choice(self, choice)
 	-- Animation names in the atlas
-	local opponent_texture = "opponent"
-	local player_texture = "player"
+	local opponent_texture = "player"
+	local player_texture = "opponent"
 
 	-- Iterate through each choice sprite
 	for i = 1, 3 do

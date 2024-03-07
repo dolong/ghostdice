@@ -10,12 +10,11 @@ embedded_instances {
   children: "players"
   children: "small_dialogue"
   children: "sounds"
-  children: "spawncards"
   children: "squares"
   children: "squares1"
   data: "components {\n"
   "  id: \"loginmenu\"\n"
-  "  component: \"/main/loginmenu.gui\"\n"
+  "  component: \"/main/main_game.gui\"\n"
   "  position {\n"
   "    x: 0.0\n"
   "    y: 0.0\n"
@@ -32,7 +31,7 @@ embedded_instances {
   "}\n"
   "components {\n"
   "  id: \"login\"\n"
-  "  component: \"/main/login.script\"\n"
+  "  component: \"/main/main_game.script\"\n"
   "  position {\n"
   "    x: 0.0\n"
   "    y: 0.0\n"
@@ -49,7 +48,7 @@ embedded_instances {
   "}\n"
   "components {\n"
   "  id: \"instructions\"\n"
-  "  component: \"/main/instructions.gui\"\n"
+  "  component: \"/main/instructions_prompt.gui\"\n"
   "  position {\n"
   "    x: 0.0\n"
   "    y: 0.0\n"
@@ -208,43 +207,6 @@ embedded_instances {
   }
 }
 embedded_instances {
-  id: "spawncards"
-  data: "components {\n"
-  "  id: \"democards\"\n"
-  "  component: \"/scripts/democards.script\"\n"
-  "  position {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "  }\n"
-  "  rotation {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "    w: 1.0\n"
-  "  }\n"
-  "  property_decls {\n"
-  "  }\n"
-  "}\n"
-  ""
-  position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-  }
-  rotation {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  scale3 {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
-}
-embedded_instances {
   id: "squares1"
   data: "components {\n"
   "  id: \"grid\"\n"
@@ -348,7 +310,7 @@ embedded_instances {
   "\"\n"
   "  position {\n"
   "    x: 651.0\n"
-  "    y: 668.0\n"
+  "    y: 667.0\n"
   "    z: 0.2\n"
   "  }\n"
   "  rotation {\n"
@@ -398,7 +360,7 @@ embedded_instances {
   "\"\n"
   "  position {\n"
   "    x: 451.0\n"
-  "    y: 668.0\n"
+  "    y: 667.0\n"
   "    z: 0.2\n"
   "  }\n"
   "  rotation {\n"
@@ -423,7 +385,7 @@ embedded_instances {
   "\"\n"
   "  position {\n"
   "    x: 251.0\n"
-  "    y: 668.0\n"
+  "    y: 667.0\n"
   "    z: 0.2\n"
   "  }\n"
   "  rotation {\n"
@@ -1993,7 +1955,7 @@ embedded_instances {
   id: "dialoguePrompt"
   data: "components {\n"
   "  id: \"dialogue_prompt\"\n"
-  "  component: \"/main/dialogue_prompt.gui\"\n"
+  "  component: \"/main/intro_prompt.gui\"\n"
   "  position {\n"
   "    x: 0.0\n"
   "    y: 0.0\n"
@@ -2012,43 +1974,6 @@ embedded_instances {
   position {
     x: -10.0
     y: 0.0
-    z: 0.0
-  }
-  rotation {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-    w: 1.0
-  }
-  scale3 {
-    x: 1.0
-    y: 1.0
-    z: 1.0
-  }
-}
-embedded_instances {
-  id: "small_dialogue"
-  data: "components {\n"
-  "  id: \"small_dialogue_prompt\"\n"
-  "  component: \"/main/small_dialogue_prompt.gui\"\n"
-  "  position {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "  }\n"
-  "  rotation {\n"
-  "    x: 0.0\n"
-  "    y: 0.0\n"
-  "    z: 0.0\n"
-  "    w: 1.0\n"
-  "  }\n"
-  "  property_decls {\n"
-  "  }\n"
-  "}\n"
-  ""
-  position {
-    x: 0.0
-    y: 180.0
     z: 0.0
   }
   rotation {
@@ -2092,6 +2017,29 @@ embedded_instances {
   "  id: \"roll_dice_sound\"\n"
   "  type: \"sound\"\n"
   "  data: \"sound: \\\"/assets/dice_roll.wav\\\"\\n"
+  "looping: 0\\n"
+  "group: \\\"master\\\"\\n"
+  "gain: 1.0\\n"
+  "pan: 0.0\\n"
+  "speed: 1.0\\n"
+  "loopcount: 0\\n"
+  "\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "}\n"
+  "embedded_components {\n"
+  "  id: \"poof\"\n"
+  "  type: \"sound\"\n"
+  "  data: \"sound: \\\"/assets/scratch.ogg\\\"\\n"
   "looping: 0\\n"
   "group: \\\"master\\\"\\n"
   "gain: 1.0\\n"
@@ -2180,6 +2128,43 @@ embedded_instances {
   position {
     x: 421.0
     y: 971.0
+    z: 0.0
+  }
+  rotation {
+    x: 0.0
+    y: 0.0
+    z: 0.0
+    w: 1.0
+  }
+  scale3 {
+    x: 1.0
+    y: 1.0
+    z: 1.0
+  }
+}
+embedded_instances {
+  id: "small_dialogue"
+  data: "components {\n"
+  "  id: \"small_dialogue_prompt\"\n"
+  "  component: \"/main/small_dialogue_prompt.gui\"\n"
+  "  position {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "  }\n"
+  "  rotation {\n"
+  "    x: 0.0\n"
+  "    y: 0.0\n"
+  "    z: 0.0\n"
+  "    w: 1.0\n"
+  "  }\n"
+  "  property_decls {\n"
+  "  }\n"
+  "}\n"
+  ""
+  position {
+    x: 0.0
+    y: 180.0
     z: 0.0
   }
   rotation {

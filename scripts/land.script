@@ -1,7 +1,0 @@
-
-function on_message(self, message_id, message, sender)
-	-- On receiving the update_score message, update the zone scores
-	if message_id == hash("update_score") then
-		update_zone_scores(self)
-	end
-end

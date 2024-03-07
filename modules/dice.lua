@@ -11,6 +11,7 @@ M.opponentPlayedCards = {}
 M.lastDiceRoll = 0 
 M.dicePlaced = true 
 M.aiRolled = false 
+M.poof = false
 
 function M.getWinner()
 	local scorePlayer1 = 0
@@ -195,12 +196,18 @@ function M.setVisual(playerNumber, lane)
 
 			-- Update the visual
 			local grid_id = (playerNumber == 1) and "/squares#grid" or "/squares1#grid"
-			msg.post(grid_id, "set_image", {image = imageName, square = adjustedSquareId})			
+			msg.post(grid_id, "set_image", {image = imageName, square = adjustedSquareId, player = playerNumber})			
 		end
 	end
+	
 	M.update_score_labels(playerNumber)
 end
-
+function M.play_poof_sound()
+	if (M.poof) then
+		msg.post("/sounds#poof", "play_sound", {gain = 1.0})
+		M.poof = false
+	end
+end
 function M.setDice(diceNumber)
 	M.lastDiceRoll = diceNumber 
 	M.dicePlaced = false
@@ -341,6 +348,35 @@ function M.get_status_as_string()
 	-- Combine both players' lane statuses into one string
 	return "{'player_1': " .. player1_lanes_str .. ", 'player_2': " .. player2_lanes_str .. "}"
 end
+
+function M.get_status_as_readable_string()
+	-- Initialize an empty string to build the status
+	local status_str = ""
+
+	-- Process each player
+	for player_number = 1, 2 do
+		-- Add the player's board heading
+		status_str = status_str .. "Player " .. player_number .. "’s board: "
+
+		-- Get the lanes for the current player
+		local lanes = M.get_player_lanes(player_number)
+
+		-- Iterate through each lane and append its status
+		for lane_number, lane in ipairs(lanes) do
+			local lane_str = "Lane " .. lane_number .. ": [" .. table.concat(lane, ", ") .. "], "
+			status_str = status_str .. lane_str
+		end
+
+		-- Add an extra newline for spacing between players, if it's the first player
+		if player_number == 1 then
+			status_str = status_str .. "\n"
+		end
+	end
+
+	return status_str
+end
+
+
 
 -- Helper function to apply a function (func) to each element of an array (array) and return a new array
 function M.map_to_string_array(array, func)
